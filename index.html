@@ -620,7 +620,7 @@ function fitCrit(){const c=S.co;const reps=num(c.reps),emp=num(c.employees);
    {k:"digital",ico:"📡",t:"ICP digital",v:c.icpDigital==="yes"?true:c.icpDigital==="no"?false:null,detail:c.icpDigital==="no"?"no está en LinkedIn":c.icpDigital==="yes"?"en LinkedIn":"¿persona en LinkedIn?"},
    {k:"outbound",ico:"🚀",t:"Outbound con proceso",v:c.outbound==="yes"&&c.process==="yes"?true:(c.outbound==="no"||c.process==="no")?false:null,detail:c.outbound==="no"?"no hacen outbound":c.process==="no"?"sin proceso":c.outbound==="yes"&&c.process==="yes"?"sí":"¿hacen outbound?"}]}
 const fitVerdict=()=>{const cs=fitCrit();if(cs.some(c=>c.v===false))return"no";if(cs.every(c=>c.v===true))return"yes";return"pending"};
-const fitLabel=()=>({yes:"ICP-fit ✓",no:"NO ICP-fit",pending:`${fitCrit().filter(c=>c.v===true).length}/4 escudos`})[fitVerdict()];
+const fitLabel=()=>({yes:"ICP-fit ✓",no:"NO ICP-fit",pending:`${fitCrit().filter(c=>c.v===true).length}/4 criterios ICP`})[fitVerdict()];
 const partnerPath=()=>S.pains.some(id=>PAINS[id].partner)||fitVerdict()==="no";
 const ansCount=()=>S.pains.reduce((a,id)=>a+(S.answers[id]||[]).filter(Boolean).length,0);
 const ansTotal=()=>S.pains.reduce((a,id)=>a+PAINS[id].quant.length,0);
@@ -632,7 +632,7 @@ const lockOpen=c=>!!S.qnotes[c.k]||(c.toggles&&c.toggles.every(t=>S.qnotes[t[0]]
 // ---------- QUALI POINTS (0-100 = quali completa) ----------
 const CORE=["reps","employees","outbound","process","icpDigital"];
 function xp(){let x=0;const c=S.co;
-  CORE.forEach(k=>{if(c[k])x+=4});                                   // 20 · escudos
+  CORE.forEach(k=>{if(c[k])x+=4});                                   // 20 · criterios ICP
   ["contact","icpPersona"].forEach(k=>{if(c[k])x+=2});if(c.ai)x+=1;  // 5
   CO_CARDS.filter(k=>k.loot).forEach(k=>{if(c[k.k])x+=1});          // 16 · loot empresa
   x+=Math.min(3,S.pains.length)*3;                                    // 9 · pains
@@ -726,12 +726,12 @@ function stageCompany(){
       <div class="nav"><button class="btn ghost" id="cback" ${S.ci===0?"disabled":""}>←</button>${card.type==="text"?`<button class="btn primary" id="cnext">Guardar <kbd>↵</kbd></button>`:""}<button class="btn ghost" id="cskip">Saltar por ahora</button>
       <span class="sp">${card.core?"":"Opcional · vuelve cuando salga en la conversación"}</span></div></div>`;
   } else {
-    body=`${dots}<div class="qcardbig" style="min-height:0"><div class="k"><span>Baraja completada</span><span class="xp">${done}/${cards.length} respondidas</span></div><div class="ask">${v==="yes"?"Empresa target confirmada.":v==="no"?"Esta empresa no es ICP-fit.":"Faltan escudos por confirmar."}</div><div class="why">${v==="pending"?"Puedes seguir a Descubrir y volver aquí cuando salgan los datos; los escudos se encienden solos.":v==="no"?"Falla: "+cs.filter(c=>c.v===false).map(c=>c.t.toLowerCase()).join(", ")+". No hay demo: deriva a Partner.":"Cuatro escudos encendidos. A por los pains."}</div></div>`;
+    body=`${dots}<div class="qcardbig" style="min-height:0"><div class="k"><span>Baraja completada</span><span class="xp">${done}/${cards.length} respondidas</span></div><div class="ask">${v==="yes"?"Empresa target confirmada.":v==="no"?"Esta empresa no es ICP-fit.":"Faltan criterios de ICP por confirmar."}</div><div class="why">${v==="pending"?"Puedes seguir a Descubrir y volver aquí cuando salgan los datos; los criterios se marcan solos.":v==="no"?"Falla: "+cs.filter(c=>c.v===false).map(c=>c.t.toLowerCase()).join(", ")+". No hay demo: deriva a Partner.":"Cumple los cuatro criterios de ICP. A por los pains."}</div></div>`;
   }
   const answered=cards.filter(c=>S.co[c.k]);
   const coreLeft=cards.filter(c=>c.core&&!S.co[c.k]).length;
   return `<div class="eyebrow">Nivel 2 · Empresa <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>¿Es una empresa target?</h1>
-  <p class="sub">Cuatro escudos, siempre, hables con quien hables. Una pregunta por carta; si no toca ahora, salta y vuelve. Las cartas con 🎒 son loot para la nota, no bloquean nada.</p>
+  <p class="sub">Cuatro criterios de ICP-fit, siempre, hables con quien hables. Una pregunta por carta; si no toca ahora, salta y vuelve. Las cartas con 🎒 son loot para la nota, no bloquean nada.</p>
   ${shields}<div class="deck">${body}
   ${answered.length?`<div class="answered">${answered.map(c=>`<button data-k="${c.k}">${esc(c.ask.replace(/[“”]/g,"").slice(0,22))}… <b>${esc(String(S.co[c.k]).slice(0,18))}</b></button>`).join("")}</div>`:""}</div>
   <div class="verdict ${v}"><div><b>${v==="yes"?"ICP-fit ✓":v==="no"?"No ICP-fit":coreLeft?`${coreLeft} criterio${coreLeft>1?"s":""} sin confirmar`:"Veredicto pendiente"}</b><span>${v==="yes"?"Cumple los cuatro criterios.":v==="no"?"Cualifica brevemente y deriva a Partner.":"Puedes seguir y volver aquí."}</span></div>
@@ -839,7 +839,7 @@ function stageQual(){
     <div class="challenge"><h2>Checklist de derivación</h2><p class="goal">Marca lo que hagas.</p><div class="qchips">
       ${[["p0","“¿Hay hoy alguien dedicado a prospectar, aunque sea a tiempo parcial?”"],["p1","“¿Pensáis contratar comercial en los próximos 6 meses?”"],["p2","Decir: “Enginy aporta valor cuando ya hay un equipo prospectando cada día. Hoy os haría perder dinero.”"],["p3","Decir: “Os presento a [Partner], que ayuda a montar el proceso y la primera contratación.”"],["p4","Email de intro al Partner con el prospect en copia y 3 líneas de contexto"],["p5","HubSpot: estado “Partner referral”, motivo y Partner"],["p6","Alerta de intent: oferta de SDR / AE / Head of Sales publicada"]].map(q=>`<button class="qchip ${S.checks[q[0]]?"on":""}" data-k="${q[0]}"><span class="box">${S.checks[q[0]]?"✓":""}</span><span>${esc(q[1])}</span></button>`).join("")}</div>
       <div class="ans"><input class="qn" id="qn-partner" data-n="partner" placeholder="Nombre del Partner" value="${esc(S.qnotes.partner||"")}"><input class="qn" id="qn-review" data-n="review" placeholder="Fecha de revisión (ej. abril 2027)" value="${esc(S.qnotes.review||"")}"></div>
-      <p class="flag">Si contesta que sí a las dos primeras y ya hay un SDR arrancando, vuelve a Empresa y revisa los escudos.</p></div>
+      <p class="flag">Si contesta que sí a las dos primeras y ya hay un SDR arrancando, vuelve a Empresa y revisa los criterios de ICP.</p></div>
     <div class="foot"><button class="btn ghost" id="back">← Cuantificar</button><button class="btn warn" id="next">Nota de la QCALL →</button></div>`;
   }
   const extras={};S.pains.forEach(id=>{if(EXTRA[id])Object.entries(EXTRA[id]).forEach(([n,q])=>{(extras[n]=extras[n]||[]).push([id,q])})});
