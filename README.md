@@ -1,4 +1,4 @@
-# Enginy Quali · Call Map
+# Enginy Qualification Map
 
 Guía interactiva y gamificada que los SDRs de Enginy siguen **en directo durante la llamada de cualificación (QCALL)**. Al terminar, genera la nota de la QCALL lista para pegar en el deal de HubSpot.
 
