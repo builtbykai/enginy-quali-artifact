@@ -15,7 +15,7 @@ function fakeEnginy(state) {
     if (method === "GET" && u.pathname === "/v1/contacts") return json(200, { data: state.contacts.filter((c) => state.searchHit !== false), meta: {} });
     if (method === "GET" && /^\/v1\/contacts\/\d+$/.test(u.pathname)) return json(200, { status: "success", data: state.contacts.find((c) => c.id === +u.pathname.split("/").pop()) });
     if (method === "GET" && /^\/v1\/companies\/\d+$/.test(u.pathname)) return json(200, { status: "success", data: state.companies.find((c) => c.id === +u.pathname.split("/").pop()) });
-    if (method === "POST" && u.pathname === "/v1/contacts") { const c = { id: 900, linkedInProfileUrl: body.linkedInProfileUrl, companyId: null }; state.contacts.push(c); return json(201, { status: "success", data: c }); }
+    if (method === "POST" && u.pathname === "/v1/contacts/bulk") { const c = { id: 900, linkedInProfileUrl: body.contacts[0].linkedInProfileUrl, companyId: null }; state.contacts.push(c); return json(201, { status: "success", data: { results: [{ index: 0, success: true, contact: { id: 900, linkedinProfileUrl: c.linkedInProfileUrl } }], summary: { total: 1, created: 1 } } }); }
     if (method === "POST" && u.pathname === "/v1/actions") { state.actions.push(body); return json(201, { status: "success", data: { actionsId: 500 + state.actions.length } }); }
     if (method === "GET" && /^\/v1\/actions\/\d+\/status$/.test(u.pathname)) return json(200, { status: "success", data: { overallStatus: state.runStatus || "PROCESSING" } });
     return json(404, { message: "not found " + u.pathname });
@@ -83,7 +83,7 @@ test("not in Enginy → create contact, scrape person, then company, then found"
   const r1 = await call("POST", { body: { linkedinUrl: "https://www.linkedin.com/in/new-person/" } });
   assert.equal(r1.code, 202); assert.equal(r1.json.status, "scraping");
   assert.deepEqual(st.actions[0], { actions: [{ type: "SCRAPE_LEAD_FROM_LINKEDIN" }], contactIds: [900] });
-  assert.equal(calls.find((c) => c.method === "POST" && c.path === "/v1/contacts").body.linkedInProfileUrl, "https://www.linkedin.com/in/new-person");
+  assert.equal(calls.find((c) => c.method === "POST" && c.path === "/v1/contacts/bulk").body.contacts[0].linkedInProfileUrl, "https://www.linkedin.com/in/new-person");
 
   // still processing
   let r = await call("GET", { query: "?job=" + r1.json.job });

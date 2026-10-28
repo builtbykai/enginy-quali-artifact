@@ -174,8 +174,12 @@ async function handler(req, res) {
           return send(200, { status: "partial", source: "enginy", data: buildProfile(full.contact, full.company),
             message: "Este perfil se actualizó en Enginy hace menos de 15 min y no se vuelve a scrapear (para no gastar créditos). Completa a mano lo que falte." });
       } else {
-        const created = unwrap(await enginy(`/v1/contacts`, { method: "POST", body: { linkedInProfileUrl: norm.url } }));
-        if (!created || !Number.isFinite(+created.id)) throw Object.assign(new Error("Enginy no devolvió el contacto creado"), { status: 502 });
+        // documented bulk endpoint, one item; merges into an existing record matched by LinkedIn URL
+        const out = unwrap(await enginy(`/v1/contacts/bulk`, { method: "POST", body: { contacts: [{ linkedInProfileUrl: norm.url }] } }));
+        const r0 = out && Array.isArray(out.results) ? out.results[0] : null;
+        const created = r0 && r0.success !== false ? r0.contact : null;
+        if (!created || !Number.isFinite(+created.id))
+          throw Object.assign(new Error((r0 && (r0.error || r0.message)) || "Enginy no devolvió el contacto creado"), { status: 502 });
         contact = { id: +created.id };
       }
       const a = await startAction({ contactIds: [contact.id] }, "SCRAPE_LEAD_FROM_LINKEDIN");
