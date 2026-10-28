@@ -1,8 +1,0 @@
-{
-  "name": "enginy-quali-artifact",
-  "private": true,
-  "description": "Enginy Qualification Map: guía de cualificación para SDRs con autocompletado desde LinkedIn vía Enginy",
-  "scripts": {
-    "test": "node --test tests/enrich.test.js"
-  }
-}
