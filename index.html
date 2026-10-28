@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Enginy Call Map</title>
+<meta name="description" content="Mapa interactivo y gamificado para que los SDR de Enginy preparen y ejecuten llamadas de cualificación (QCALL).">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Enginy Call Map">
+<meta property="og:description" content="Mapa interactivo y gamificado para que los SDR de Enginy preparen y ejecuten llamadas de cualificación (QCALL).">
+<meta name="theme-color" content="#0B2A24">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23115548'/%3E%3Ctext x='32' y='46' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-size='40' font-weight='700' fill='%2336E471'%3EE%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}
+/* Layout: a quest path on top (6 nodes), a game board in the middle that changes per level (3D orbit of spheres, one-question-at-a-time cards, locks to open, mission-complete screen), and a HUD on the right with rank, XP, badges and loot. Dark-first, arcade-but-elegant, Enginy greens. */
+:root{
+  --bg:#06201B; --bg2:#0B2A24; --panel:rgba(16,54,46,.72); --panel-solid:#113A32; --panel2:rgba(255,255,255,.06); --fg:#EDF6F1; --muted:#9BBDB1;
+  --line:rgba(237,246,241,.12); --brand:#115548; --accent:#36E471; --accent-ink:#06301A; --accent-soft:rgba(54,228,113,.16);
+  --warn:#F5B547; --warn-ink:#2B1A00; --danger:#F07167; --gold:#FFD166;
+  --sphere-a:#2A7A66; --sphere-b:#0F3B32; --glass:rgba(255,255,255,.07); --shadow:0 24px 60px rgba(0,0,0,.5);
+  --sans:"Helvetica Neue",Helvetica,Arial,sans-serif; --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#EEF5F1; --bg2:#F7FBF8; --panel:rgba(255,255,255,.8); --panel-solid:#FFFFFF; --panel2:rgba(17,85,72,.06); --fg:#0A2620; --muted:#4D6A61;
+  --line:rgba(10,38,32,.12); --brand:#115548; --accent:#1C9A57; --accent-ink:#FFFFFF; --accent-soft:rgba(28,154,87,.14);
+  --warn:#B9780A; --warn-ink:#FFFFFF; --danger:#C8433A; --gold:#B8860B; --sphere-a:#FFFFFF; --sphere-b:#CFE3DA; --glass:rgba(255,255,255,.65); --shadow:0 24px 60px rgba(10,38,32,.14); color-scheme:light; } }
+:root[data-theme="light"]{
+  --bg:#EEF5F1; --bg2:#F7FBF8; --panel:rgba(255,255,255,.8); --panel-solid:#FFFFFF; --panel2:rgba(17,85,72,.06); --fg:#0A2620; --muted:#4D6A61;
+  --line:rgba(10,38,32,.12); --brand:#115548; --accent:#1C9A57; --accent-ink:#FFFFFF; --accent-soft:rgba(28,154,87,.14);
+  --warn:#B9780A; --warn-ink:#FFFFFF; --danger:#C8433A; --gold:#B8860B; --sphere-a:#FFFFFF; --sphere-b:#CFE3DA; --glass:rgba(255,255,255,.65); --shadow:0 24px 60px rgba(10,38,32,.14); color-scheme:light; }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--sans);-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden}
+body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(90px);opacity:.55;pointer-events:none}
+body::before{width:60vw;height:60vw;left:-15vw;top:-20vw;background:radial-gradient(circle,#1B6A58,transparent 65%);animation:drift 26s ease-in-out infinite alternate}
+body::after{width:50vw;height:50vw;right:-18vw;bottom:-18vw;background:radial-gradient(circle,rgba(54,228,113,.35),transparent 65%);animation:drift 32s ease-in-out infinite alternate-reverse}
+@keyframes drift{to{transform:translate(8vw,6vw) scale(1.12)}}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,textarea{font:inherit;color:var(--fg)}
+.wrap{min-height:100%;display:flex;flex-direction:column;gap:16px;max-width:1380px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 32px}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:50}
+
+/* Quest path */
+.rail{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:20px;padding:12px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em;font-size:16px;white-space:nowrap}
+.logo i{width:32px;height:32px;border-radius:10px;background:linear-gradient(145deg,#1A6B59,#0E463B);display:grid;place-items:center;color:var(--accent);font-style:normal;font-family:var(--mono);font-weight:600;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 6px 14px rgba(0,0,0,.25)}
+.miles{display:grid;grid-template-columns:repeat(6,1fr);position:relative;min-width:0}
+.miles::before{content:"";position:absolute;left:8.3%;right:8.3%;top:17px;height:3px;border-radius:2px;background:var(--line)}
+.miles .fill{position:absolute;left:8.3%;top:17px;height:3px;border-radius:2px;background:linear-gradient(90deg,#1FB85B,var(--accent));width:0;transition:width .6s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px var(--accent)}
+.mile{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:0 4px;min-width:0;text-align:center}
+.mile .dot{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:13px;background:var(--panel-solid);border:2px solid var(--line);color:var(--muted);transition:all .3s;position:relative;z-index:1;box-shadow:inset 0 -4px 8px rgba(0,0,0,.25)}
+.mile .lbl{font-size:12.5px;font-weight:700;color:var(--muted);white-space:nowrap}
+.mile .sub{font-family:var(--mono);font-size:10.5px;color:var(--muted);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.mile.done .dot{background:linear-gradient(150deg,#5CF08E,#1FB85B);border-color:transparent;color:var(--accent-ink)}
+.mile.done .lbl{color:var(--fg)}
+.mile.on .dot{background:var(--brand);border-color:var(--accent);color:#fff;box-shadow:0 0 0 6px var(--accent-soft),0 0 24px var(--accent-soft);transform:scale(1.12);animation:beat 2.4s ease-in-out infinite}
+@keyframes beat{50%{box-shadow:0 0 0 10px var(--accent-soft),0 0 34px var(--accent-soft)}}
+.mile.on .lbl{color:var(--fg)}
+.mile.on .sub{color:var(--accent);opacity:1}
+.mile:disabled{cursor:not-allowed}
+.mile:not(:disabled):hover .dot{border-color:var(--accent)}
+.reset{font-size:13px;color:var(--muted);padding:8px 12px;border-radius:10px;white-space:nowrap}
+.reset:hover{color:var(--fg);background:var(--panel2)}
+@media (max-width:520px){.mile:not(.on) .lbl{display:none}.mile.on .lbl{overflow:visible}}
+@media (max-width:900px){.rail{grid-template-columns:1fr auto}.logo{display:none}.mile .sub{display:none}.mile .lbl{font-size:10.5px}.mile .dot{width:30px;height:30px;font-size:12px}}
+
+/* Board */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+@media (max-width:1000px){.main{grid-template-columns:1fr}}
+.stage{background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:24px;padding:26px;min-width:0;position:relative;overflow:hidden;box-shadow:var(--shadow);scroll-margin-top:calc(env(safe-area-inset-top,0px) + 100px);animation:fade .35s ease-out}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}}
+.stage h1{font-size:clamp(24px,2.8vw,34px);line-height:1.08;margin:0 0 8px;letter-spacing:-.025em;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 16px;max-width:66ch}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.eyebrow .tag{background:var(--accent-soft);padding:3px 8px;border-radius:6px;color:var(--fg);letter-spacing:.06em}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.seg{display:inline-flex;background:var(--panel2);border-radius:10px;padding:3px;border:1px solid var(--line)}
+.seg button{padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted)}
+.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.foot{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:18px;flex-wrap:wrap}
+.foot .count{margin-right:auto;color:var(--muted);font-size:13px}
+.btn{padding:11px 18px;border-radius:12px;font-weight:600;border:1px solid var(--line);background:var(--panel2);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(150deg,#5CF08E,#22BD60);color:#06301A;border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 10px 24px rgba(54,228,113,.3)}
+.btn.warn{background:linear-gradient(150deg,#FFD07A,#E09A1A);color:#2B1A00;border-color:transparent}
+.btn.ghost{color:var(--muted);background:none}
+.btn.ghost:hover{color:var(--fg);background:var(--panel2)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+kbd{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:5px;border:1px solid var(--line);background:var(--panel2);color:var(--muted)}
+
+/* Orbit map (levels 1 & 3) */
+.map{position:relative;width:100%;max-width:680px;aspect-ratio:1;margin:0 auto;perspective:1200px}
+.map .ring{position:absolute;border-radius:50%;border:1px solid var(--line);inset:6%;pointer-events:none;background:radial-gradient(circle,transparent 60%,var(--panel2));animation:spin 90s linear infinite}
+.map .ring.r2{inset:28%;border-style:dashed;animation-direction:reverse;animation-duration:60s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sphere{position:absolute;left:50%;top:50%;width:var(--d,126px);height:var(--d,126px);margin:calc(var(--d,126px)/-2) 0 0 calc(var(--d,126px)/-2);border-radius:50%;
+  transform:translate(var(--x,0),var(--y,0)) translateZ(0);display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;
+  color:var(--fg);font-size:13px;line-height:1.2;font-weight:600;letter-spacing:-.01em;
+  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.34),rgba(255,255,255,0) 38%),radial-gradient(circle at 68% 78%,rgba(0,0,0,.38),rgba(0,0,0,0) 55%),linear-gradient(150deg,var(--sphere-a),var(--sphere-b));
+  box-shadow:inset 0 -14px 26px rgba(0,0,0,.28),inset 0 2px 2px rgba(255,255,255,.25),0 18px 34px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.25);
+  transition:transform .55s cubic-bezier(.2,.8,.2,1),width .45s,height .45s,margin .45s,opacity .4s,box-shadow .25s,filter .25s;will-change:transform}
+.sphere::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);pointer-events:none}
+.sphere.float{animation:bob 6s ease-in-out infinite;animation-delay:var(--delay,0s)}
+@keyframes bob{50%{margin-top:calc(var(--d,126px)/-2 - 3px)}}
+.sphere:hover,.sphere:focus-visible{transform:translate(var(--x,0),var(--y,0)) translateY(-6px) scale(1.06);filter:brightness(1.12);box-shadow:inset 0 -14px 26px rgba(0,0,0,.28),inset 0 2px 2px rgba(255,255,255,.3),0 28px 46px rgba(0,0,0,.42),0 0 0 4px var(--accent-soft);z-index:3}
+.sphere .code{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--accent);letter-spacing:.08em;display:block;margin-bottom:3px}
+.sphere .t{display:block}
+.sphere .hint{display:block;font-weight:400;font-size:10.5px;color:var(--muted);margin-top:5px;font-style:italic;line-height:1.25}
+.sphere.persona em{display:block;font-style:normal;font-weight:400;font-size:11px;color:var(--muted);margin-top:4px}
+.sphere.core{--d:172px;cursor:default;font-size:15px;background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.28),rgba(255,255,255,0) 40%),radial-gradient(circle at 68% 78%,rgba(0,0,0,.45),rgba(0,0,0,0) 55%),linear-gradient(150deg,#1C6E5B,#0A3A30);color:#EDF6F1;
+  box-shadow:inset 0 -18px 30px rgba(0,0,0,.35),inset 0 2px 2px rgba(255,255,255,.25),0 0 0 12px var(--accent-soft),0 0 60px rgba(54,228,113,.25),0 26px 50px rgba(0,0,0,.45);z-index:2}
+.sphere.core::before{content:"";position:absolute;inset:-22px;border-radius:50%;border:1px solid var(--accent);opacity:.35;animation:pulse 3.2s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.85);opacity:.5}100%{transform:scale(1.25);opacity:0}}
+.sphere.core small{display:block;font-family:var(--mono);font-weight:400;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.sphere.core:hover{transform:translate(0,0);filter:none}
+.sphere.pain{--d:136px;font-weight:600;font-size:12.5px}
+.sphere.pain.sel{background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.5),rgba(255,255,255,0) 40%),radial-gradient(circle at 68% 78%,rgba(0,0,0,.25),rgba(0,0,0,0) 55%),linear-gradient(150deg,#5CF08E,#1FB85B);color:#06301A;box-shadow:inset 0 -14px 26px rgba(0,0,0,.18),inset 0 2px 2px rgba(255,255,255,.5),0 18px 34px rgba(0,0,0,.35),0 0 30px rgba(54,228,113,.45)}
+.sphere.pain.sel .code,.sphere.pain.sel .hint{color:#06301A;opacity:.75}
+.sphere.pain.partner{background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.3),rgba(255,255,255,0) 38%),radial-gradient(circle at 68% 78%,rgba(0,0,0,.38),rgba(0,0,0,0) 55%),linear-gradient(150deg,#8A6A2A,#4A3610)}
+.sphere.pain.partner .code{color:var(--warn)}
+.sphere.pain.partner.sel{background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.5),rgba(255,255,255,0) 40%),linear-gradient(150deg,#FFD07A,#E09A1A);color:#2B1A00;box-shadow:0 18px 34px rgba(0,0,0,.35),0 0 30px rgba(245,181,71,.45)}
+.sphere.pain.partner.sel .code,.sphere.pain.partner.sel .hint{color:#2B1A00}
+.sphere.out{opacity:0;transform:translate(var(--x,0),var(--y,0)) scale(.4);pointer-events:none}
+.sphere.born{transform:translate(0,0) scale(.2);opacity:0}
+.sphere .tick{position:absolute;right:8px;top:8px;width:22px;height:22px;border-radius:50%;background:#06301A;color:var(--accent);display:grid;place-items:center;font-size:12px}
+.sphere.partner .tick{background:#2B1A00;color:var(--warn)}
+.tip{position:absolute;z-index:6;width:280px;max-width:90%;background:var(--panel-solid);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;font-size:13px}
+.tip.show{opacity:1;transform:none}
+.tip .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.tip p{margin:0 0 6px;font-style:italic;line-height:1.35}
+.tip p:last-child{margin:0}
+.tip .role{font-style:normal;color:var(--muted)}
+@media (max-width:720px){
+  .map{aspect-ratio:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;perspective:none}
+  .map .ring{display:none}
+  .tip{position:fixed;left:16px!important;right:16px;bottom:16px;top:auto!important;width:auto;max-width:none}
+  .sphere{position:static;margin:0;width:auto;height:auto;min-height:104px;border-radius:20px;transform:none!important;animation:none!important}
+  .sphere.core{grid-column:1/-1;min-height:78px}
+  .sphere.core::before{display:none}
+}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.pcard{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px 16px;text-align:left;transition:transform .2s,border-color .2s;display:flex;flex-direction:column;gap:6px}
+.pcard:hover{transform:translateY(-3px);border-color:var(--accent)}
+.pcard.sel{border-color:var(--accent);background:var(--accent-soft)}
+.pcard.partner{border-style:dashed;border-color:var(--warn)}
+.pcard .code{font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.08em}
+.pcard .t{font-weight:700;font-size:15px;letter-spacing:-.01em}
+.pcard .say{color:var(--muted);font-size:12.5px;font-style:italic}
+.pcard .q{font-size:13px;margin-top:4px;padding-top:8px;border-top:1px solid var(--line)}
+.pcard .q b{font-family:var(--mono);font-weight:500;font-size:10px;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:3px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:14px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:inset -2px -2px 4px rgba(0,0,0,.3)}
+
+/* Drawer (pain detail) */
+.drawer{position:absolute;inset:0;background:var(--panel-solid);transform:translateX(104%);transition:transform .36s cubic-bezier(.2,.8,.2,1);overflow:auto;padding:26px;display:flex;flex-direction:column;gap:16px;z-index:4}
+.drawer.open{transform:none}
+.drawer header{display:flex;align-items:flex-start;gap:12px}
+.drawer header .code{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em}
+.drawer header h2{margin:2px 0 0;font-size:24px;letter-spacing:-.02em;line-height:1.12}
+.drawer header .say{color:var(--muted);font-style:italic;margin-top:5px}
+.drawer .back{margin-left:auto;font-size:13px;color:var(--muted);padding:7px 11px;border-radius:9px;white-space:nowrap}
+.drawer .back:hover{background:var(--panel2);color:var(--fg)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.card h3{margin:0 0 8px;font-size:11px;font-family:var(--mono);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.card ol,.card ul{margin:0;padding-left:18px}
+.card li{margin:6px 0}
+.card li.q{font-style:italic}
+.card.impact{border-left:3px solid var(--danger)}
+.card.partner{border-left:3px solid var(--warn)}
+.card p{margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:7px;background:var(--brand);color:#EDF6F1;box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:auto}
+
+/* Shields (ICP criteria) */
+.shields{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+@media (max-width:640px){.shields{grid-template-columns:repeat(2,1fr)}}
+.shield{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:14px 12px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .35s}
+.shield .ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--panel-solid);border:1px solid var(--line);font-size:20px;filter:grayscale(1) opacity(.5);transition:all .35s;box-shadow:inset 0 -6px 10px rgba(0,0,0,.25)}
+.shield b{font-size:12.5px;line-height:1.2}
+.shield small{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.shield.ok{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px var(--accent-soft),0 0 30px rgba(54,228,113,.25)}
+.shield.ok .ico{filter:none;background:linear-gradient(150deg,#5CF08E,#1FB85B);border-color:transparent;transform:scale(1.08);animation:popin .5s cubic-bezier(.2,1.4,.3,1)}
+.shield.ko{border-color:var(--danger);background:rgba(240,113,103,.1)}
+.shield.ko .ico{filter:none;background:linear-gradient(150deg,#F79B94,#C8433A);border-color:transparent}
+@keyframes popin{0%{transform:scale(.6)}70%{transform:scale(1.2)}100%{transform:scale(1.08)}}
+
+/* Card deck (one question at a time) */
+.deck{max-width:720px;margin:0 auto;position:relative}
+.dots{display:flex;gap:5px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line);transition:all .3s;cursor:pointer}
+.dots i.done{background:var(--accent)}
+.dots i.on{background:var(--fg);transform:scale(1.4);box-shadow:0 0 10px var(--accent)}
+.dots i.skip{background:var(--warn);opacity:.6}
+.qcardbig{background:linear-gradient(160deg,var(--panel-solid),var(--bg2));border:1px solid var(--line);border-radius:24px;padding:28px 30px;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.08);animation:deal .4s cubic-bezier(.2,.8,.2,1);min-height:280px;display:flex;flex-direction:column;gap:14px;position:relative}
+.qcardbig::before{content:"";position:absolute;inset:-1px;border-radius:24px;padding:1px;background:linear-gradient(140deg,var(--accent),transparent 40%,transparent 60%,var(--accent));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.35;pointer-events:none}
+@keyframes deal{from{opacity:0;transform:translateX(40px) rotate(1.5deg)}}
+.qcardbig .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:flex;justify-content:space-between;gap:10px}
+.qcardbig .k .xp{color:var(--gold)}
+.qcardbig .ask{font-size:clamp(19px,2.3vw,25px);font-weight:700;letter-spacing:-.02em;line-height:1.2;text-wrap:balance}
+.qcardbig .why{color:var(--muted);font-size:13.5px;margin-top:-6px}
+.qcardbig .in{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.qcardbig input[type=text]{flex:1;min-width:200px;border:1px solid var(--line);background:var(--glass);border-radius:14px;padding:14px 16px;font:16px var(--sans)}
+.qcardbig input::placeholder{color:var(--muted);opacity:.65;font-family:var(--mono);font-size:13px}
+.opts{display:flex;gap:10px;flex-wrap:wrap}
+.opt{padding:14px 22px;border-radius:16px;border:1px solid var(--line);background:var(--panel2);font-weight:700;font-size:15px;transition:all .15s;box-shadow:inset 0 -4px 8px rgba(0,0,0,.18)}
+.opt:hover{transform:translateY(-2px);border-color:var(--accent)}
+.opt.on{background:linear-gradient(150deg,#5CF08E,#22BD60);color:#06301A;border-color:transparent}
+.opt.no.on{background:linear-gradient(150deg,#F79B94,#C8433A);color:#fff}
+.qcardbig .nav{display:flex;gap:10px;align-items:center;margin-top:auto;flex-wrap:wrap}
+.qcardbig .nav .sp{margin-left:auto;color:var(--muted);font-size:12.5px}
+.answered{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;justify-content:center}
+.answered button{font-family:var(--mono);font-size:11px;padding:5px 9px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.answered button b{color:var(--fg);font-weight:500}
+.answered button:hover{border-color:var(--accent);color:var(--fg)}
+.verdict{margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:18px 20px;border-radius:20px;border:1px solid var(--line);background:var(--panel2)}
+.verdict b{display:block;font-size:18px;letter-spacing:-.01em}
+.verdict span{color:var(--muted);font-size:13.5px}
+.verdict.yes{border-color:var(--accent);background:var(--accent-soft)}
+.verdict.no{border-color:var(--danger);background:rgba(240,113,103,.1)}
+
+/* Quantify: boss cards */
+.bosses{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.boss{padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);font-size:13px;font-weight:600;display:flex;gap:8px;align-items:center}
+.boss .hp{width:46px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.boss .hp i{display:block;height:100%;background:linear-gradient(90deg,#1FB85B,#5CF08E);transition:width .3s}
+.boss.on{border-color:var(--accent);background:var(--accent-soft)}
+.boss.full{border-color:var(--gold)}
+.bossbody{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px}
+@media (max-width:860px){.bossbody{grid-template-columns:1fr}}
+.qrow{display:grid;gap:5px;padding:10px 0;border-top:1px solid var(--line)}
+.qrow .q{font-size:14px;font-style:italic}
+.qrow input{width:100%;border:1px solid var(--line);background:var(--glass);border-radius:10px;padding:10px 12px;font:13.5px var(--mono);transition:box-shadow .2s}
+.qrow input.hit{box-shadow:0 0 0 3px var(--accent-soft);border-color:var(--accent)}
+.qrow input::placeholder{color:var(--muted);opacity:.65}
+.why-row{background:var(--accent-soft);border-radius:12px;padding:12px;margin-top:8px;border-top:0}
+.why-row .q b{font-style:normal;color:var(--accent)}
+.side h4{margin:0 0 6px;font-size:11px;font-family:var(--mono);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.side p{margin:0 0 12px;font-size:13.5px}
+.side .frame{background:var(--panel-solid);border-left:3px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:12px}
+.side .frame b{display:block;font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+
+/* Mapear: locks */
+.locks{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.lock{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:18px 14px 14px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .3s;cursor:pointer}
+.lock:hover{transform:translateY(-3px);border-color:var(--accent)}
+.lock .ico{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:var(--panel-solid);border:2px solid var(--line);box-shadow:inset 0 -8px 14px rgba(0,0,0,.3);transition:all .35s}
+.lock b{font-size:13px;line-height:1.2}
+.lock small{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.lock .ring{position:absolute;inset:0;border-radius:20px;pointer-events:none}
+.lock.on{border-color:var(--accent);background:var(--accent-soft)}
+.lock.open .ico{background:linear-gradient(150deg,#5CF08E,#1FB85B);border-color:transparent;transform:rotate(-8deg) scale(1.08);animation:unlock .6s cubic-bezier(.2,1.4,.3,1)}
+.lock.open{border-color:var(--accent)}
+.lock.open::after{content:"✓";position:absolute;top:10px;right:12px;font-family:var(--mono);color:var(--accent);font-weight:600}
+@keyframes unlock{0%{transform:rotate(0) scale(.8)}50%{transform:rotate(-20deg) scale(1.25)}100%{transform:rotate(-8deg) scale(1.08)}}
+.challenge{background:linear-gradient(160deg,var(--panel-solid),var(--bg2));border:1px solid var(--accent);border-radius:24px;padding:24px 26px;box-shadow:var(--shadow);animation:deal .35s cubic-bezier(.2,.8,.2,1)}
+.challenge h2{margin:0 0 4px;font-size:22px;letter-spacing:-.02em}
+.challenge .goal{color:var(--muted);margin:0 0 14px;font-size:14px}
+.qchips{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.qchip{text-align:left;display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--panel2);font-size:14px;line-height:1.35;transition:all .15s}
+.qchip:hover{border-color:var(--accent);transform:translateX(3px)}
+.qchip .box{flex:none;width:22px;height:22px;border-radius:7px;border:2px solid var(--line);display:grid;place-items:center;font-size:12px;color:var(--accent-ink);margin-top:1px;transition:all .2s}
+.qchip.on{border-color:var(--accent);background:var(--accent-soft)}
+.qchip.on .box{background:var(--accent);border-color:var(--accent)}
+.qchip.extra{border-style:dashed}
+.qchip.extra .plus{font-family:var(--mono);color:var(--accent);margin-right:4px}
+.challenge .ans{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.challenge .ans input{flex:1;min-width:220px;border:1px solid var(--line);background:var(--glass);border-radius:14px;padding:13px 15px;font:15px var(--sans)}
+.challenge .flag{margin:10px 0 0;font-size:12.5px;color:var(--warn);font-family:var(--mono);line-height:1.4}
+
+/* Close: mission complete */
+.mission{display:grid;grid-template-columns:200px 1fr;gap:22px;align-items:center;margin-bottom:18px}
+@media (max-width:700px){.mission{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.ringwrap{position:relative;width:200px;height:200px}
+.ringwrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ringwrap .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ringwrap .num b{font-size:44px;letter-spacing:-.04em;line-height:1;font-family:var(--mono);font-weight:600}
+.ringwrap .num small{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.rank{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:linear-gradient(150deg,#FFD166,#E09A1A);color:#2B1A00;font-weight:800;font-size:13px;letter-spacing:.02em;box-shadow:0 8px 20px rgba(255,209,102,.3)}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.badge{display:flex;gap:9px;align-items:center;padding:9px 10px;border-radius:14px;border:1px solid var(--line);background:var(--panel2);font-size:12px;line-height:1.2;opacity:.45;filter:grayscale(1)}
+.badge .b{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--panel-solid);font-size:16px;flex:none;box-shadow:inset 0 -5px 8px rgba(0,0,0,.25)}
+.badge.on{opacity:1;filter:none;border-color:var(--gold);background:rgba(255,209,102,.1)}
+.badge.on .b{background:linear-gradient(150deg,#FFD166,#E09A1A)}
+.badge small{display:block;color:var(--muted);font-family:var(--mono);font-size:10px;margin-top:2px}
+.script{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:18px;padding:18px 20px;margin-bottom:14px}
+.script h3{margin:0 0 8px;font-size:11px;font-family:var(--mono);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.script p{margin:8px 0;font-size:15.5px;line-height:1.5}
+.script p mark{background:var(--accent-soft);color:var(--fg);padding:0 4px;border-radius:4px}
+.script p mark.miss{background:rgba(240,113,103,.18);font-family:var(--mono);font-size:13px}
+.missbox{margin-top:14px;padding:14px 16px;border-radius:16px;border:1px solid var(--warn);background:rgba(245,181,71,.1);font-size:13.5px;line-height:1.5}
+.missbox b{display:block;margin-bottom:2px}
+.missbox.ok{border-color:var(--accent);background:var(--accent-soft)}
+.missbox .btn{padding:7px 12px;font-size:12.5px}
+textarea.sum{width:100%;min-height:340px;resize:vertical;border-radius:14px;border:1px solid var(--line);background:var(--glass);color:var(--fg);padding:14px;font:13px/1.5 var(--mono)}
+
+/* HUD */
+.sheet{background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:24px;padding:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 96px);display:flex;flex-direction:column;gap:14px;min-width:0;box-shadow:var(--shadow)}
+@media (max-width:1000px){.sheet{position:static}}
+.sheet h2{margin:0;font-size:11px;font-family:var(--mono);font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.hud{display:flex;gap:14px;align-items:center}
+.lvl{width:64px;height:64px;border-radius:50%;position:relative;flex:none}
+.lvl svg{width:100%;height:100%;transform:rotate(-90deg)}
+.lvl b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:15px;font-weight:600}
+.hud .t{min-width:0}
+.hud .t b{display:block;font-size:15px;letter-spacing:-.01em}
+.hud .t small{font-family:var(--mono);font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.xpbar{height:8px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
+.xpbar i{display:block;height:100%;background:linear-gradient(90deg,#1FB85B,#5CF08E,#FFD166);width:0;transition:width .5s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 10px var(--accent)}
+.kv{display:grid;grid-template-columns:78px 1fr;gap:7px 10px;font-size:13px;margin:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;min-width:0}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:7px;background:var(--accent-soft);color:var(--fg);margin:2px 4px 2px 0}
+.pill.w{background:rgba(245,181,71,.22)}
+.pill.ok{background:var(--accent);color:var(--accent-ink)}
+.sheet textarea{width:100%;min-height:110px;resize:vertical;border-radius:12px;border:1px solid var(--line);background:var(--glass);color:var(--fg);padding:10px;font:13px/1.45 var(--mono)}
+.toast{font-size:12px;color:var(--accent);font-family:var(--mono);min-height:16px}
+.empty{color:var(--muted);font-size:13px}
+.loot{font-size:12px;font-family:var(--mono);color:var(--muted);display:flex;flex-direction:column;gap:3px;max-height:150px;overflow:auto}
+.loot b{color:var(--fg);font-weight:500}
+.badges.mini{grid-template-columns:repeat(4,1fr)}
+.badges.mini .badge{padding:6px;justify-content:center}
+.badges.mini .badge span{display:none}
+/* XP pop */
+.pop{position:fixed;z-index:60;font-family:var(--mono);font-weight:600;font-size:15px;color:var(--gold);text-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:none;animation:rise 1.1s ease-out forwards}
+@keyframes rise{0%{opacity:0;transform:translate(-50%,0) scale(.8)}15%{opacity:1;transform:translate(-50%,-10px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-70px) scale(1)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<canvas id="fx"></canvas>
+<div class="wrap">
+  <div class="rail">
+    <div class="logo"><i>E</i>Call Map</div>
+    <div class="miles" id="miles"></div>
+    <button class="reset" id="reset">Nueva partida</button>
+  </div>
+  <div class="main">
+    <section class="stage" id="stage"></section>
+    <aside class="sheet" id="sheet"></aside>
+  </div>
+</div>
+
+<script>
+const PRODUCTS = {
+  finder:"AI Finder (listas por ICP)", enrich:"Waterfall Enrichment (30+ proveedores)", research:"AI Research (contexto por cuenta)",
+  msg:"AI Messaging (hiper-personalización)", seq:"Secuencias multicanal", intent:"Señales de intent", social:"Social Selling",
+  crm:"CRM Sync (HubSpot / Salesforce)", flows:"Workflows automáticos"
+};
+const PERSONAS = [
+  {id:"founder", name:"Founder", sub:"Etapa temprana, aún vende él", role:"Decisor único. Si no hay equipo ni proceso, no es ICP: cualificar y redirigir a Partner.", dm:"él mismo", partnerish:true, pains:["P2","P1","D3","E3","A3","D4"]},
+  {id:"ceo", name:"CEO", sub:"Scale-up con equipo comercial", role:"Sponsor económico. Compra crecimiento y eficiencia, no features.", dm:"él mismo; pide que el VP Sales esté en la demo", pains:["A1","A3","E3","D4","E2"]},
+  {id:"vpsales", name:"VP / Head of Sales", sub:"CRO, Sales Director", role:"Decisor habitual. Dueño del número. Convierte cada pain en pipeline o win rate.", dm:"él mismo (CFO si hay consolidación de stack)", pains:["A1","A3","C4","D1","D2","B3","D4","E3","E4"]},
+  {id:"sdrlead", name:"Head of SDR / Sales Mgr", sub:"Team lead de prospección", role:"Champion ideal: sufre el día a día y propone la herramienta. Necesita munición para su VP.", dm:"su VP Sales", pains:["A2","C1","C2","C3","B2","B3","E1","D1","D3"]},
+  {id:"marketing", name:"VP / Head of Marketing", sub:"Demand Gen, Field Marketing", role:"Entrada lateral. Compra ROI de eventos y de leads. Aliado si hay tensión Marketing–Ventas.", dm:"el VP Sales como sponsor", pains:["E4","C3","D3","A2","B3"]},
+  {id:"sdr", name:"SDR / BDR", sub:"Usuario final", role:"No decide ni tiene presupuesto. Objetivo: que te presente a su Head of SDR con un pain cuantificado.", dm:"su Head of SDR o VP Sales", champion:true, pains:["C1","C2","A2","B2","D1","C3"]},
+  {id:"ae", name:"AE / Rep", sub:"Account Executive, full-cycle", role:"Usuario con influencia. Sufre reuniones malas y CRM sucio. Puerta hacia el VP Sales.", dm:"su VP Sales", champion:true, pains:["C4","D1","B1","D2"]},
+  {id:"revops", name:"RevOps / SalesOps / GTM Eng", sub:"Dueños del stack y del dato", role:"Champion técnico y gatekeeper. Compra consolidación, calidad de dato y menos herramientas.", dm:"el VP Sales y el CFO", pains:["B1","B2","E1","E2","B3","D1","E3"]},
+];
+const PAINS = {
+ A1:{t:"No llegan a la cuota de reuniones ni de pipeline", hint:"Pregunta por el gap de pipeline", say:"No llegamos a 3x de cobertura / los SDRs no hacen cuota de meetings",
+  d:["¿Cuánto pipeline necesitáis generar este trimestre y cuánto lleváis?","¿Los SDRs están llegando a su cuota de reuniones?"],
+  quant:[["Gap de pipeline en €","ej. 1,2M€ de 3M€"],["Reuniones cualificadas por SDR y mes: necesarias vs reales","ej. 12 vs 7"],["Qué pasa si no se cierra el gap (quién responde)","ej. forecast Q1 en riesgo, board"]],
+  impact:"Forecast en riesgo, presión del board, AEs sin oportunidades que trabajar.", frame:"Si lo he entendido bien, hoy os faltan [gap] de pipeline y cada SDR agenda [X] reuniones cuando necesitáis [Y].",
+  prod:["finder","enrich","seq","msg","intent"], how:"Enginy multiplica el pipeline cualificado por SDR: construye la lista, enriquece, escribe y secuencia en multicanal. El mismo equipo genera 3-4x conversaciones.",
+  strat:"Ir arriba. Hablar de coste del gap en €, nunca de features. Si hay nuevo VP Sales, entrar en sus primeros 60 días con un benchmark de su sector.",
+  angle:{ceo:"Conecta el gap con el plan de crecimiento comunicado a inversores.",vpsales:"Pide el número exacto del gap; sin número no hay urgencia."}},
+ A2:{t:"Pocas respuestas a los emails en frío", hint:"Pide su reply rate", say:"Mandamos miles de emails y contestan 4 / las secuencias ya no funcionan",
+  d:["¿Qué reply rate tenéis hoy en frío?","¿Cuánto personaliza de verdad un SDR cada email?"],
+  quant:[["Emails/mes y respuestas positivas","ej. 8.000 → 45"],["Minutos por email personalizado y cuántos se personalizan","ej. 6 min, solo el 10%"],["Reuniones extra si el reply rate subiera 3 puntos","ej. +20 al mes"]],
+  impact:"Leads quemados, dominios con mala reputación, SDRs desmotivados, meetings que no llegan.", frame:"Con [emails/mes] y [reply rate], cada punto de reply rate que ganéis son [reuniones] más al mes.",
+  prod:["research","msg","seq"], how:"AI Research lee la cuenta y el contacto; AI Messaging escribe un mensaje distinto para cada uno a escala.",
+  strat:"Demostrar con el ejemplo: enséñale un mensaje hiper-personalizado sobre su propia empresa generado con Enginy y dile que ha tardado 30 segundos.",
+  angle:{sdr:"Pregúntale cuántos emails escribe a mano al día.",marketing:"Enfócalo como demand gen: respuestas, no envíos."}},
+ A3:{t:"Quieren crecer sin contratar más SDRs", hint:"¿Cómo doblarían pipeline sin fichar?", say:"Necesito duplicar pipeline y no tengo presupuesto para más SDRs",
+  d:["Si tuvieras que doblar el pipeline el año que viene, ¿cómo lo harías con el equipo actual?","¿Hay presupuesto de contratación comercial para este año?"],
+  quant:[["Coste de un SDR cargado al año","ej. 55k€"],["SDRs que haría falta contratar y meses de ramp-up","ej. 3 SDRs, 4 meses"],["Rotación anual del equipo SDR","ej. 40%"]],
+  impact:"Crecimiento limitado por coste de contratación, ramp-up de 3-6 meses, rotación alta.", frame:"Doblar pipeline contratando serían [N SDRs] × [coste] y [meses] hasta que produzcan.",
+  prod:["finder","enrich","msg","seq","flows"], how:"Enginy como AI Sales OS: un SDR con Enginy hace el trabajo de prospección de 3-4 sin la herramienta.",
+  strat:"Business case: coste de un SDR cargado vs. coste de Enginy por seat. Único pain donde el CFO es puerta de entrada legítima.",
+  angle:{founder:"Si aún no tiene SDRs, esto es futuro: valida primero P1/P2."}},
+ B1:{t:"El CRM está sucio o incompleto", hint:"% de contactos verificados", say:"El CRM está sucio / no me fío de los datos / no tenemos campos para segmentar por ICP",
+  d:["¿Qué porcentaje de contactos del CRM tienen email y teléfono verificados?","¿Cuándo se enriquecieron por última vez?"],
+  quant:[["% de contactos con email/teléfono válidos","ej. 35%"],["Duplicados y cargos desactualizados (estimación)","ej. 20% duplicados"],["Campos de ICP que faltan y quién los rellena","ej. industria, tech stack; los SDRs a mano"]],
+  impact:"Duplicados, decisores con cargo desactualizado, reporting poco fiable, segmentación imposible.", frame:"Con solo [%] de contactos válidos, cada campaña que lanzáis pierde [%] del esfuerzo antes de empezar.",
+  prod:["research","enrich","crm","intent"], how:"Enriquecimiento waterfall + AI Research mantienen el CRM fresco y sincronizan campos de ICP y señales a HubSpot/Salesforce.",
+  strat:"Ángulo técnico: ofrecer una muestra de 50 cuentas suyas enriquecida. Es el pain donde la demo con sus datos cierra más rápido.",
+  angle:{ae:"Pregunta cuántas veces esta semana ha llamado a alguien que ya no está.",revops:"Habla de estructura de datos y sync, no de prospección."}},
+ B2:{t:"Emails que rebotan o caen en spam", hint:"Pide su bounce rate", say:"Caemos en spam / tenemos un 8% de bounce / nos han quemado dos dominios",
+  d:["¿Qué bounce rate tenéis en frío?","¿Verificáis los emails antes de meterlos en secuencia?"],
+  quant:[["Bounce rate actual","ej. 8%"],["Dominios de envío y cuántos habéis retirado","ej. 6, 2 quemados"],["Días para recuperar un dominio quemado","ej. 3-4 semanas"]],
+  impact:"Secuencias que no llegan, dominios bloqueados semanas, reputación dañada, volumen que no escala.", frame:"Un [bounce]% de bounce significa que [N] emails al mes no llegan y arrastran al resto a spam.",
+  prod:["enrich","seq"], how:"Verificación waterfall con 30+ proveedores antes de enviar; solo se paga por email válido; salud de dominio integrada.",
+  strat:"Entrada táctica: verificar gratis una lista que ya tengan en secuencia y enseñarles el % de inválidos. Prueba inmediata.",
+  angle:{sdr:"Él ve los rebotes cada día; pídele el número."}},
+ B3:{t:"No saben qué cuentas están comprando ahora", hint:"¿Cómo eligen las cuentas de la semana?", say:"Prospectamos por ICP estático / llegamos tarde a las cuentas que ya están comprando",
+  d:["¿Cómo decidís qué 50 cuentas trabaja un SDR esta semana?","¿Qué os avisa cuando una cuenta cambia de VP Sales o levanta ronda?"],
+  quant:[["Fuente de las cuentas semanales","ej. lista estática de Apollo"],["% del esfuerzo a cuentas sin señal de compra","ej. ~80%"],["Deals perdidos por llegar tarde (últimos 6 meses)","ej. 4"]],
+  impact:"Esfuerzo repartido uniforme entre cuentas frías y calientes, ROI de outbound en caída, competencia que llega antes.", frame:"Hoy el [%] del esfuerzo va a cuentas que no están en mercado; ahí está el ROI que falta.",
+  prod:["intent","finder","flows","seq"], how:"Señales de intent (cambios de rol, hiring, funding, engagement en LinkedIn) priorizan cuentas y disparan secuencias.",
+  strat:"Enviarle 5 cuentas de su ICP con una señal real esta semana. Si contesta \"¿cómo lo sabes?\", ya tienes la reunión.",
+  angle:{marketing:"Habla de intent como fuente de leads, no de prospección."}},
+ C1:{t:"Los SDRs pierden el día en listas y research", hint:"Horas/semana preparando vs vendiendo", say:"Mis SDRs pasan la mitad del día en LinkedIn y Excel / limpiar el CRM nos come horas",
+  d:["¿Cuántas horas a la semana dedica un SDR a construir listas y preparar contexto?","¿Cuántas conversaciones reales tiene a la semana?"],
+  quant:[["Horas/semana por SDR en preparación","ej. 15h"],["Nº de SDRs y coste hora","ej. 6 SDRs, 25€/h"],["Conversaciones reales por SDR y semana","ej. 12"]],
+  impact:"2-4 h/día por SDR sin valor, menos conversaciones, coste operativo alto, burnout y rotación.", frame:"[h] horas × [SDRs] × [€/h] son [€] al mes pagando a vendedores por no vender.",
+  prod:["finder","enrich","research","crm"], how:"Listas, enriquecimiento y research automáticos: el SDR arranca el día con la lista hecha y el contexto escrito.",
+  strat:"Cálculo de horas × SDRs × coste hora. Pedir que un SDR suyo pruebe Enginy una semana y compare conversaciones.",
+  angle:{sdr:"Pídele que describa su mañana de ayer, hora a hora.",sdrlead:"Convierte las horas en reuniones perdidas para su VP."}},
+ C2:{t:"Prospectan a mano, uno a uno", hint:"Contactos nuevos al día", say:"Conectamos y escribimos uno a uno / no llegamos a más de 30 contactos al día",
+  d:["¿Cuántos contactos nuevos toca un SDR al día?","¿Quién coordina email, LinkedIn y llamada para cada contacto?"],
+  quant:[["Contactos nuevos por SDR y día","ej. 30"],["Semanas para cubrir un segmento de 500 cuentas","ej. 8"],["Volumen necesario para el objetivo de reuniones","ej. 150/día"]],
+  impact:"Pérdida de momentum, throughput limitado por horas-persona, imposible atacar un segmento en semanas.", frame:"A [N]/día tardáis [semanas] en cubrir un segmento que podríais tener en secuencia en dos días.",
+  prod:["seq","msg","finder"], how:"Secuencias multicanal automatizadas con personalización IA: de 30 a 300 contactos cualificados al día por SDR.",
+  strat:"Ángulo de velocidad: lo que hacen en un mes, en Enginy en un día. Buen pain para demo en vivo con su ICP.",
+  angle:{ae:"Si prospecta él mismo, cuantifica las horas que le roba a cerrar."}},
+ C3:{t:"Los leads se enfrían sin seguimiento", hint:"Touches por contacto que no contesta", say:"Mandamos el primer email y nadie hace el tercero / los leads del evento se quedaron sin seguimiento",
+  d:["¿Cuántos touches recibe de media un contacto que no contesta?","¿Quién controla que el seguimiento se haga?"],
+  quant:[["Touches medios por contacto","ej. 1,5"],["Leads del último evento/campaña con 2+ contactos","ej. 20%"],["Reuniones perdidas estimadas por no llegar al 3er touch","ej. 10/mes"]],
+  impact:"Se pierde la mayoría de reuniones ya pagadas en esfuerzo; Marketing entrega leads que mueren.", frame:"El 80% de las respuestas llegan a partir del 3er touch y vosotros os quedáis en [N].",
+  prod:["seq","flows","crm"], how:"Secuencias con cadencia automática y tareas de llamada/LinkedIn asignadas; nada se queda sin siguiente paso.",
+  strat:"Ángulo: reuniones perdidas, no eficiencia. Si hay tensión Marketing–Ventas, Marketing es el aliado natural.",
+  angle:{marketing:"Pregunta qué pasa con sus leads a los 7 días de entregarlos a Ventas."}},
+ C4:{t:"Los AEs deberían prospectar y no lo hacen", hint:"% de pipeline self-sourced", say:"Los AEs tienen que prospectar el 20% del tiempo y no lo hacen",
+  d:["¿Qué porcentaje del pipeline de un AE es self-sourced?","¿Con qué herramienta prospectan ellos mismos?"],
+  quant:[["Self-sourcing objetivo vs real","ej. 30% vs 8%"],["AEs bajo cuota y pipeline que les falta","ej. 4 de 7, 600k€"],["Herramienta actual de los AEs","ej. Sales Navigator a mano"]],
+  impact:"Pipeline self-sourced bajo objetivo, AEs con cuota en riesgo, SDRs sobrecargados.", frame:"Si los AEs llegaran al [objetivo] de self-sourcing serían [€] más de pipeline sin un SDR más.",
+  prod:["finder","research","msg","seq"], how:"El AE define su territorio y Enginy construye la lista, enriquece y lanza la secuencia; el AE solo entra a las respuestas.",
+  strat:"Convertir la obligación de prospectar en 20 minutos al día. Pedir un AE piloto, no todo el equipo.",
+  angle:{ae:"Él es el usuario: pregúntale cuánto odia prospectar y por qué.",vpsales:"Habla de cuota y territorios, no de SDRs."}},
+ D1:{t:"Reuniones con gente fuera de target", hint:"% de reuniones que acepta el AE", say:"Los SDRs hablan con quien contesta / llegan reuniones que el AE descalifica",
+  d:["De las reuniones que agendan los SDRs, ¿qué porcentaje acepta el AE como oportunidad real?","¿Los SDRs cobran por reunión agendada o por oportunidad aceptada?"],
+  quant:[["% de reuniones SDR aceptadas por el AE","ej. 55%"],["Reuniones descalificadas al mes","ej. 18"],["Cómo se define y aplica el ICP hoy","ej. en un Notion, nadie lo aplica"]],
+  impact:"Reuniones que no avanzan, AEs que pierden tiempo, win rate bajo, incentivos mal alineados.", frame:"[N] reuniones al mes que el AE tira son [horas] de SDR y AE que no vuelven.",
+  prod:["finder","intent","enrich"], how:"AI Finder con filtros de ICP reales (tecnología, señales, firmografía) y scoring; solo entran en secuencia los que cumplen.",
+  strat:"Tasa de aceptación SDR→AE como métrica. Construir su ICP en el AI Finder y enseñar cuántas de sus cuentas actuales quedan fuera.",
+  angle:{ae:"Pídele ejemplos de reuniones malas de esta semana.",sdr:"Pregúntale si sabe exactamente qué cuentas son ICP."}},
+ D2:{t:"Miles de closed-lost sin retrabajar", hint:"Closed-lost de los últimos 2 años", say:"Tenemos 2.000 oportunidades perdidas en el CRM y nadie las retrabaja",
+  d:["¿Cuántas oportunidades closed-lost de los últimos 2 años tenéis? ¿Quién las trabaja?","¿Algo os avisa si cambió el decisor en esas cuentas?"],
+  quant:[["Closed-lost últimos 2 años","ej. 1.800"],["Valor medio de esas oportunidades","ej. 18k€"],["Pipeline si reactivaras un 5%","ej. 1,6M€"]],
+  impact:"El pipeline más barato sin tocar: conocen la marca y hubo fit; el coste de adquisición ya está pagado.", frame:"[N] closed-lost × [valor] × 5% son [€] de pipeline que ya pagasteis una vez.",
+  prod:["enrich","intent","seq","crm"], how:"Enriquecimiento del histórico (¿sigue el champion?) + secuencia de reactivación disparada por señal.",
+  strat:"Caso acotado: \"solo closed-lost, 4 semanas, medimos reuniones\". Buena cuña si ya tienen otra herramienta de outbound.",
+  angle:{ae:"Pregúntale cuántos deals perdió por timing que valdría la pena retomar."}},
+ D3:{t:"LinkedIn sin constancia ni conversión", hint:"¿Qué pasa con los que reaccionan a un post?", say:"Sabemos que deberíamos estar activos en LinkedIn pero nadie lo mantiene / el CEO publica, el equipo no",
+  d:["Cuando un post del CEO tiene 200 reacciones, ¿qué pasa con esas 200 personas al día siguiente?","¿Cuántos del equipo publican o comentan cada semana?"],
+  quant:[["Personas del equipo activas en LinkedIn cada semana","ej. 1 de 9"],["Reuniones atribuidas a LinkedIn orgánico al mes","ej. 2"],["Engagers del último post capturados","ej. ninguno"]],
+  impact:"Outbound frío sin calentar, SDRs invisibles para su ICP, engagement que no se convierte en pipeline.", frame:"[N] reacciones por post y cero seguimiento son [N] leads tibios que se enfrían cada semana.",
+  prod:["social","finder","seq"], how:"Social selling integrado: calendario, comentarios sugeridos y captura de engagers (propios y de competidores) a listas y secuencias.",
+  strat:"Enséñale la lista de engagers de su último post ya enriquecida con cargo y empresa. Entrada ligera que abre la puerta al resto.",
+  angle:{founder:"Si publica él, es su pain más cercano: engagers → reuniones.",marketing:"Posiciónalo como atribución de LinkedIn a pipeline."}},
+ D4:{t:"Abren un país o vertical desde cero", hint:"Pipeline antes de que llegue el equipo local", say:"Abrimos DACH / LATAM / un nuevo vertical y empezamos de cero sin datos ni proceso",
+  d:["¿Qué pipeline tenéis ya en el nuevo mercado antes de que llegue el equipo local?","¿Cómo habéis validado el ICP allí?"],
+  quant:[["Fecha de aterrizaje del equipo local y objetivo Q1","ej. enero, 300k€"],["Pipeline actual en el nuevo mercado","ej. 0"],["Coste mensual del ramp-up local","ej. 25k€/mes"]],
+  impact:"6-12 meses de ramp-up, contrataciones a ciegas, inversión sin pipeline visible.", frame:"Cada mes sin pipeline en [mercado] cuesta [€] y retrasa el primer cierre del equipo local.",
+  prod:["finder","enrich","msg","seq"], how:"Cobertura multi-país y multi-idioma, mensajes IA en el idioma local, test de ICP antes de contratar.",
+  strat:"Country Manager recién nombrado o VP Sales. Ángulo: pipeline en el nuevo país antes de que aterrice el equipo.",
+  angle:{ceo:"La expansión suele estar en el pitch a inversores: úsalo."}},
+ E1:{t:"Demasiadas herramientas, ramp-up lento", hint:"Herramientas que abre un SDR al día", say:"Un SDR nuevo tarda 3 meses en ser productivo porque tiene que aprender 7 herramientas",
+  d:["¿Cuántas herramientas abre un SDR cada día para hacer su trabajo?","¿Cuánto tarda un SDR nuevo en llegar a cuota?"],
+  quant:[["Herramientas en el stack de prospección","ej. 7"],["Meses hasta cuota de un SDR nuevo","ej. 4"],["SDRs contratados al año y rotación","ej. 6, 35%"]],
+  impact:"Ramp-up de 3-6 meses, rotación cara, procesos que se van con la gente.", frame:"[N] herramientas y [meses] de ramp-up: cada SDR que rota se lleva [€] de formación.",
+  prod:["finder","enrich","seq","social","intent","crm"], how:"Una sola plataforma para listas, enriquecimiento, secuencias, social selling y señales: un onboarding, un proceso, un dato.",
+  strat:"Dibujar su stack actual (lo hacemos nosotros) frente a Enginy solo. Muy fuerte si contratan SDRs en volumen.",
+  angle:{revops:"Habla de integraciones y mantenimiento, no de onboarding."}},
+ E2:{t:"Gastan de más en tooling solapado", hint:"€/SDR/año en stack y fechas de renovación", say:"Pagamos 6 licencias que se solapan / Finanzas nos pide recortar el stack",
+  d:["¿Qué pagáis hoy al año en datos, secuencias y LinkedIn por SDR?","¿Cuándo renováis cada herramienta?"],
+  quant:[["€ por SDR y año en tooling","ej. 5.000€"],["Herramientas con funciones solapadas","ej. Apollo + Lemlist + Clay"],["Próxima renovación grande","ej. Apollo, marzo"]],
+  impact:"300-600 € por SDR y mes en herramientas solapadas, renovaciones sin revisar, datos pagados dos veces.", frame:"[€]/SDR/año repartidos en [N] herramientas que hacen lo mismo dos veces.",
+  prod:["finder","enrich","seq","social","intent"], how:"Consolidación: un contrato sustituye a datos + secuencias + social + señales; créditos con pago por resultado.",
+  strat:"TCO comparado a 12 meses. Entrar 60-90 días antes de su renovación principal. RevOps champion, CFO sponsor.",
+  angle:{ceo:"Preséntalo como eficiencia de capital, no como ahorro pequeño."}},
+ E3:{t:"Tardan meses en probar un nuevo mercado", hint:"Días de 'quiero probar' a tener datos", say:"Tardamos un trimestre en saber si un nuevo segmento funciona",
+  d:["¿Cuánto tardáis desde \"quiero probar este vertical\" hasta tener datos de reply y reuniones?","¿Cuántas personas requiere cada test?"],
+  quant:[["Semanas por test de mercado","ej. 10"],["Personas y horas por test","ej. 2 personas, 1 mes"],["Hipótesis que quieren probar este año vs posibles","ej. 6 vs 2"]],
+  impact:"Decisiones de mercado con poca evidencia, oportunidades perdidas mientras se prueba, dependencia de headcount.", frame:"[semanas] por test significa que este año solo validaréis [N] de las [M] hipótesis que tenéis.",
+  prod:["finder","msg","seq","flows"], how:"Crear audiencia, lanzar campaña y leer resultados en días: iterar ICP, mensaje y canal sin tocar el equipo.",
+  strat:"Ángulo estratégico: velocidad de aprendizaje. Proponer un test de 2 semanas con un segmento que ellos duden.",
+  angle:{founder:"Si ya tiene motor outbound mínimo, es su mejor entrada.",revops:"Los GTM Engineers lo viven: habla de workflows."}},
+ E4:{t:"Los eventos no traen pipeline", hint:"Reuniones a 30 días del último evento", say:"Organizamos el evento, vino quien quiso y no salió pipeline",
+  d:["Del último evento, ¿cuántos asistentes eran ICP y cuántas reuniones salieron a los 30 días?","¿Qué pasa con los asistentes el día después?"],
+  quant:[["Coste del último evento","ej. 40k€"],["Asistentes ICP y reuniones a 30 días","ej. 30% ICP, 3 reuniones"],["Próximo evento y fecha","ej. SaaStr, 6 semanas"]],
+  impact:"20-100 k€ por evento sin atribución clara, asistentes fuera de ICP, leads sin seguimiento.", frame:"[€] por evento para [N] reuniones: [€/reunión]. Llenar la sala con ICP cambia ese número.",
+  prod:["finder","intent","msg","seq"], how:"Invitados por ICP e intent, secuencia de invitación personalizada y follow-up automático el día después.",
+  strat:"Entrar 6 semanas antes del evento con la propuesta de llenar la sala con su ICP. Después del evento, entrar por el follow-up.",
+  angle:{marketing:"Marketing es la entrada; pide que el VP Sales esté en la demo como sponsor."}},
+ P1:{t:"Quieren empezar outbound, nunca lo han hecho", hint:"¿Hay alguien que prospecte hoy?", say:"Hasta ahora todo ha sido inbound o lo vendía yo / queremos empezar outbound y no sabemos por dónde", partner:true,
+  d:["¿Tenéis hoy a alguien dedicado a prospectar, aunque sea a tiempo parcial?","¿Habéis hecho alguna secuencia antes?"],
+  quant:[["¿CRM con datos o hoja de cálculo?","ej. HubSpot vacío"],["Cuándo contratan al primer SDR / Head of Sales","ej. Q2 si cierran ronda"],["Qué les falta: proceso, gente o herramienta","ej. proceso"]],
+  impact:"Necesita consultoría, playbook y ejecución externa antes que plataforma. Ciclo largo, churn alto.", frame:"Enginy aporta valor cuando ya hay alguien prospectando cada día; hoy os haría perder dinero.",
+  prod:[], how:"Enginy acelera un motor de outbound que existe; no lo construye. Este lead no entra en pipeline propio.",
+  strat:"Call corta sin demo. Transparencia. Presentar al Partner adecuado con contexto, en copia. Registrar como Partner referral y revisar a 6 meses.",
+  angle:{founder:"No forzar demo ni vender un seat suelto. La señal de vuelta es su primera oferta de SDR o Head of Sales."}},
+ P2:{t:"Aún no hay equipo de ventas", hint:"¿Quién vende hoy?", say:"No tengo equipo de ventas ni proceso aún / vendo yo entre reuniones de producto", partner:true,
+  d:["¿Quién vende hoy? ¿Hay alguien con título comercial en la empresa?","¿Pensáis contratar comercial en los próximos 6 meses?"],
+  quant:[["Origen de las ventas actuales","ej. red personal, referidos"],["Intención y fecha de primera contratación comercial","ej. sin fecha"],["¿Saben si necesitan SDR, AE o Head of Sales primero?","ej. no"]],
+  impact:"Sin usuario dedicado Enginy no se adopta y el churn es seguro.", frame:"Antes de una herramienta necesitáis decidir si contratáis, a quién y con qué playbook.",
+  prod:[], how:"No hay a quién dar la herramienta. Mismo tratamiento que P1: cualificar, redirigir a Partner (fractional Head of Sales o consultora GTM) y revisar a 6-9 meses.",
+  strat:"15 minutos para confirmar el estado, sin demo. Presentar al Partner que encaje. Registrar como Partner referral con fecha de revisión.",
+  angle:{founder:"Qué no hacer: venderle un seat \"para que pruebe\" o dejarlo en nurturing sin fecha."}},
+};
+// Qualification blocks, aligned 1:1 with the HubSpot QCALL note (G–L)
+const QUAL = [
+ {n:"01", k:"impact", ico:"🎯", t:"Pain e impacto", snip:"G", goal:"Que lo diga él con sus números y que te diga POR QUÉ duele.", q:["Repetir el pain con sus cifras y pedir confirmación: \"Si lo he entendido bien…\"","\"¿Por qué es un problema para vosotros? ¿Qué os impide?\" (no asumir)","\"¿Qué habéis intentado ya? ¿Por qué no funcionó?\"","\"¿Qué pasa si no lo arregláis en 6 meses?\""], note:"ROI / impacto estimado con sus métricas"},
+ {n:"02", k:"competitors", ico:"⚔️", t:"Competidores", snip:"H", goal:"Saber contra quién y contra qué inercia compites.", q:["\"¿Estáis mirando otras soluciones? ¿Cuáles?\"","\"¿Qué os gusta y qué no de lo que habéis visto?\"","\"¿La alternativa es otra herramienta o seguir como estáis?\""], note:"Competidores mencionados"},
+ {n:"03", k:"timing", ico:"⏱️", t:"Timing", snip:"I", goal:"Encontrar el evento que hace que sea ahora.", q:["\"¿Para cuándo necesitáis que esté funcionando? ¿Qué hay detrás de esa fecha?\"","\"¿Qué cambia en 90 días: equipo, evento, renovación, nuevo mercado?\"","\"¿Cuándo empezaríais la implementación?\""], note:"Fecha de inicio prevista"},
+ {n:"04", k:"criteria", ico:"🧭", t:"Criterios de decisión", snip:"J", goal:"Qué van a evaluar para decir sí.", q:["\"¿Qué puntos clave evaluáis para tomar la decisión?\"","\"¿Qué tendría que pasar en la demo para que fuera un sí?\"","\"¿Hay algún requisito técnico o de seguridad que descarte opciones?\""], note:"Criterios clave"},
+ {n:"05", k:"process", ico:"👑", t:"Proceso y decisor", snip:"K", goal:"Pasos, personas y que quien firma esté en la demo.", q:["\"Si esto encaja, ¿quién toma la decisión final? ¿Quién firma?\"","\"¿Qué pasos hay: piloto, evaluación, compras, legal?\"","\"¿Incluimos a [decisor] en la demo para no hacer dos rondas?\"","Si dice que no: \"¿Qué te ayudaría a presentárselo tú? Te preparo el business case.\""], note:"Pasos y personas (quién firma)"},
+ {n:"06", k:"price", ico:"💶", t:"Precio y pago", snip:"L", goal:"Saber si hay dinero y dejar el precio sobre la mesa.", q:["\"¿Qué pagáis hoy en prospección y datos? ¿Cuándo renováis?\"","\"¿Hay presupuesto asignado o saldría de otra partida?\"","Mencionar rango de precio por seat","Mencionar modelo de pago (anual / mensual, créditos)"], note:"Presupuesto / reacción al precio", toggles:[["priceMentioned","¿Has mencionado precio?"],["paymentMentioned","¿Has mencionado modelo de pago?"]]},
+];
+const EXTRA = {
+ E2:{"06":"\"¿La renovación de [herramienta] está ya en el calendario de compras? ¿Podemos adelantarnos?\""},
+ E4:{"03":"\"El evento es en [N] semanas: ¿tendríamos la lista de invitados lista 4 semanas antes?\""},
+ D4:{"03":"\"¿Cuándo aterriza el equipo local? ¿Queréis que lleguen con pipeline ya abierto?\""},
+ A3:{"06":"\"Si el seat cuesta menos que un mes de un SDR, ¿quién decide esa comparación: tú o el CFO?\""},
+ B1:{"05":"\"¿RevOps tiene que validar cualquier cosa que toque el CRM? Mejor que esté en la demo.\""},
+ A1:{"03":"\"¿El gap es de este trimestre o del año? Eso cambia cuándo tiene que estar esto en marcha.\""},
+};
+// Company deck: one question per card. core = decides ICP-fit; the rest are loot (optional, skippable)
+const CO_CARDS=[
+ {k:"contact",ask:"¿Con quién estás hablando?",why:"Nombre y cargo. Si no es CSO/COO/CEO/CRO/CMO, apunta quién sí lo es.",type:"text",ph:"ej. Marta Ruiz, VP Sales",xp:10},
+ {k:"reps",ask:"“¿Cuántas personas tenéis en el equipo de ventas?”",why:"Criterio ICP: más de 3. Cuenta SDRs y AEs.",type:"text",ph:"ej. 5 (2 SDR + 3 AE)",xp:25,core:true},
+ {k:"employees",ask:"“¿Cuántos sois en total en la empresa?”",why:"Criterio ICP: más de 20 empleados.",type:"text",ph:"ej. 120",xp:25,core:true},
+ {k:"outbound",ask:"“¿Hacéis outbound hoy, o lo habéis hecho?”",why:"Criterio ICP: tiene que existir un motor outbound.",type:"yn",xp:25,core:true},
+ {k:"process",ask:"“¿Tenéis un proceso definido para ello: listas, secuencias, cadencia?”",why:"Criterio ICP: outbound con proceso, no a ratos.",type:"yn",xp:25,core:true},
+ {k:"icpPersona",ask:"“¿A quién le vendéis? ¿Qué cargo compra?”",why:"Su buyer persona. Sección B de la nota.",type:"text",ph:"ej. Director de Operaciones en logística",xp:15},
+ {k:"icpDigital",ask:"¿Ese buyer persona está en LinkedIn?",why:"Criterio ICP. Si venden a restaurantes, hoteles, real estate o negocio local sin presencia digital: No.",type:"yn",xp:25,core:true},
+ {k:"ai",ask:"“¿Usáis alguna IA para prospectar? ChatGPT, Claude…”",why:"Va directo a la nota.",type:"yn",xp:10},
+ {k:"aiTool",ask:"“¿Cuál y para qué la usáis?”",why:"C.2 de la nota.",type:"text",ph:"ej. ChatGPT para redactar emails",xp:10,dep:["ai","yes"]},
+ {k:"location",ask:"“¿Dónde estáis? ¿Oficinas?”",why:"A · Situación de la empresa.",type:"text",ph:"ej. Madrid, HQ en Barcelona",xp:10,loot:true},
+ {k:"business",ask:"“¿Cuáles son vuestras líneas de negocio?”",why:"A · Situación de la empresa.",type:"text",ph:"ej. SaaS de RRHH para pymes",xp:10,loot:true},
+ {k:"structure",ask:"“¿Cómo está organizado el equipo comercial?”",why:"A · Estructura: SDRs, AEs, RevOps, managers.",type:"text",ph:"ej. 1 Head of Sales, 2 SDRs, 3 AEs, sin RevOps",xp:15,loot:true},
+ {k:"icpCountries",ask:"“¿En qué países vendéis?”",why:"B · ICP del cliente.",type:"text",ph:"ej. España, Portugal, México",xp:10,loot:true},
+ {k:"icpIndustries",ask:"“¿A qué sectores?”",why:"B · ICP del cliente.",type:"text",ph:"ej. retail, logística",xp:10,loot:true},
+ {k:"icpSize",ask:"“¿De qué tamaño son vuestros clientes?”",why:"B · Empleados y facturación.",type:"text",ph:"ej. 50-500 empleados, >5M€",xp:10,loot:true},
+ {k:"processOpen",ask:"“Cuéntame cómo generáis las listas hoy: quién lo hace, con qué y cuánto tarda.”",why:"C · Pregunta abierta. Deja hablar y apunta lo esencial.",type:"text",ph:"en sus palabras",xp:25,loot:true},
+ {k:"crm",ask:"“¿Qué CRM usáis?”",why:"C.1",type:"text",ph:"ej. HubSpot",xp:10,loot:true},
+ {k:"listTools",ask:"“¿Con qué construís listas y enriquecéis datos?”",why:"C.3",type:"text",ph:"ej. Apollo, Lusha",xp:10,loot:true},
+ {k:"seqTool",ask:"“¿Qué herramienta de campañas o secuencias tenéis?”",why:"C.4",type:"text",ph:"ej. Lemlist",xp:10,loot:true},
+ {k:"salesNav",ask:"“¿Tenéis licencias de Sales Navigator? ¿Cuántas?”",why:"C.5",type:"text",ph:"ej. 4",xp:10,loot:true},
+ {k:"extraInfo",ask:"“¿Qué información que no está en LinkedIn os importa para encontrar a un buen cliente?”",why:"C.6",type:"text",ph:"ej. tecnología que usan, nº de tiendas",xp:15,loot:true},
+ {k:"dayOpen",ask:"“¿Cómo es el día a día de un rep? ¿En qué se le va el tiempo?”",why:"D · Pregunta abierta: tareas, tiempo, ineficiencias.",type:"text",ph:"en sus palabras",xp:25,loot:true},
+ {k:"coldCall",ask:"“¿Hacéis cold call?”",why:"D · Canales actuales.",type:"choice",opts:[["no","No"],["mobile","Sí, a móvil"],["office","Sí, a fijo"]],xp:10,loot:true},
+ {k:"chEmail",ask:"“¿Email en frío?”",why:"D · Canales actuales.",type:"yn",xp:10,loot:true},
+ {k:"chLinkedin",ask:"“¿LinkedIn?”",why:"D · Canales actuales.",type:"yn",xp:10,loot:true},
+];
+const BASE_CARDS=[
+ {k:"emailQuality",ask:"“¿Qué tal la calidad de los emails que tenéis?”",why:"C · Calidad de datos.",ph:"ej. regular, muchos genéricos",xp:15},
+ {k:"bounce",ask:"“¿Qué bounce rate tenéis?”",why:"C · Si ya salió con B2, cópialo.",ph:"ej. 8%",xp:15},
+ {k:"reply",ask:"“¿Y el reply rate?”",why:"C · Si ya salió con A2, cópialo.",ph:"ej. 2%",xp:15},
+ {k:"phoneQuality",ask:"“¿Tenéis teléfonos directos? ¿De qué calidad?”",why:"C · Calidad de datos.",ph:"ej. pocos móviles directos",xp:15},
+ {k:"companiesMonth",ask:"“¿A cuántas empresas contacta un SDR al mes?”",why:"E · Volumen. Vale semana o día.",ph:"ej. 200/mes",xp:15},
+ {k:"cycle",ask:"“¿Cuánto dura de media vuestro ciclo de venta?”",why:"E · Ratios.",ph:"ej. 45 días",xp:15},
+ {k:"ticket",ask:"“¿Cuál es el ticket medio por cliente?”",why:"E · MRR, anual o one-off.",ph:"ej. 12k€/año",xp:15},
+ {k:"clients",ask:"“¿Cuántos clientes tenéis hoy?”",why:"E · Ratios.",ph:"ej. 80",xp:15},
+];
+const BLBL={emailQuality:"Calidad emails",bounce:"Bounce",reply:"Reply rate",phoneQuality:"Teléfonos",companiesMonth:"Empresas/mes",cycle:"Ciclo",ticket:"Ticket",clients:"Clientes"};
+const BASE=BASE_CARDS.map(c=>[c.k,c.ask.replace(/[“”]/g,""),c.ph]);
+const MILES=[["Persona","¿Con quién hablas?"],["Empresa","¿Es ICP-fit?"],["Descubrir","¿Qué pains tiene?"],["Cuantificar","¿Cuánto duele?"],["Mapear","¿Puede comprar?"],["Cerrar","Misión y nota"]];
+const BADGES=[
+ ["scanner","🛡️","ICP Scanner","4 criterios resueltos",()=>fitCrit().every(c=>c.v!==null)],
+ ["hunter","🔭","Pain Hunter","3+ pains detectados",()=>S.pains.filter(i=>!PAINS[i].partner).length>=3],
+ ["why","🧠","Why Seeker","un 'por qué' por pain",()=>S.pains.length>0&&S.pains.every(i=>S.why[i])],
+ ["numbers","🔢","Number Cruncher","6+ métricas base",()=>Object.values(S.base).filter(Boolean).length>=6],
+ ["gate","👑","Gatekeeper","decisor identificado",()=>!!S.qnotes.process],
+ ["price","💶","Price Talker","precio y pago mencionados",()=>S.qnotes.priceMentioned==="yes"&&S.qnotes.paymentMentioned==="yes"],
+ ["note","📋","Nota completa","0 campos vacíos",()=>S.persona&&S.pains.length>0&&missing().length===0],
+ ["scout","🤝","Partner Scout","derivación bien hecha",()=>partnerPath()&&!!S.qnotes.partner&&!!S.qnotes.review],
+];
+
+// ---------- STATE ----------
+const LS="enginy-call-map-v4";
+let S={step:1,persona:null,pains:[],detail:null,view:"map",checks:{},answers:{},why:{},qnotes:{},base:{},co:{},quick:"",ci:0,bi:0,boss:0,lock:null,skipped:{}};
+try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s&&s.step)S={...S,...s,detail:null}}catch(e){}
+function save(){try{const{detail,...rest}=S;localStorage.setItem(LS,JSON.stringify(rest))}catch(e){}}
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const persona=()=>PERSONAS.find(p=>p.id===S.persona);
+const num=v=>{const n=parseFloat(String(v||"").replace(/[^\d.,]/g,"").replace(",","."));return isNaN(n)?null:n};
+function fitCrit(){const c=S.co;const reps=num(c.reps),emp=num(c.employees);
+  return [
+   {k:"reps",ico:"🧑‍💼",t:"+3 en ventas",v:reps===null?null:reps>3,detail:c.reps?`${c.reps}`:"¿cuántos reps?"},
+   {k:"emp",ico:"🏢",t:"+20 empleados",v:emp===null?null:emp>20,detail:c.employees?`${c.employees}`:"¿cuántos sois?"},
+   {k:"digital",ico:"📡",t:"ICP digital",v:c.icpDigital==="yes"?true:c.icpDigital==="no"?false:null,detail:c.icpDigital==="no"?"no está en LinkedIn":c.icpDigital==="yes"?"en LinkedIn":"¿persona en LinkedIn?"},
+   {k:"outbound",ico:"🚀",t:"Outbound con proceso",v:c.outbound==="yes"&&c.process==="yes"?true:(c.outbound==="no"||c.process==="no")?false:null,detail:c.outbound==="no"?"no hacen outbound":c.process==="no"?"sin proceso":c.outbound==="yes"&&c.process==="yes"?"sí":"¿hacen outbound?"}]}
+const fitVerdict=()=>{const cs=fitCrit();if(cs.some(c=>c.v===false))return"no";if(cs.every(c=>c.v===true))return"yes";return"pending"};
+const fitLabel=()=>({yes:"ICP-fit ✓",no:"NO ICP-fit",pending:`${fitCrit().filter(c=>c.v===true).length}/4 escudos`})[fitVerdict()];
+const partnerPath=()=>S.pains.some(id=>PAINS[id].partner)||fitVerdict()==="no";
+const ansCount=()=>S.pains.reduce((a,id)=>a+(S.answers[id]||[]).filter(Boolean).length,0);
+const ansTotal=()=>S.pains.reduce((a,id)=>a+PAINS[id].quant.length,0);
+const qualDone=()=>QUAL.reduce((a,c)=>a+c.q.filter((q,k)=>S.checks[c.n+k]).length,0)+Object.keys(S.checks).filter(k=>k.startsWith("x")&&S.checks[k]).length;
+const qualTotal=()=>QUAL.reduce((a,c)=>a+c.q.length,0)+S.pains.filter(id=>EXTRA[id]).length;
+const uniqProducts=()=>{const s=new Set();S.pains.forEach(i=>PAINS[i].prod.forEach(k=>s.add(PRODUCTS[k])));return[...s]};
+const lockOpen=c=>!!S.qnotes[c.k]||(c.toggles&&c.toggles.every(t=>S.qnotes[t[0]]));
+
+// ---------- QUALI POINTS (0-100 = quali completa) ----------
+const CORE=["reps","employees","outbound","process","icpDigital"];
+function xp(){let x=0;const c=S.co;
+  CORE.forEach(k=>{if(c[k])x+=4});                                   // 20 · escudos
+  ["contact","icpPersona"].forEach(k=>{if(c[k])x+=2});if(c.ai)x+=1;  // 5
+  CO_CARDS.filter(k=>k.loot).forEach(k=>{if(c[k.k])x+=1});          // 16 · loot empresa
+  x+=Math.min(3,S.pains.length)*3;                                    // 9 · pains
+  x+=Math.min(9,ansCount());                                          // 9 · datos
+  x+=Math.min(3,Object.values(S.why).filter(Boolean).length)*2;      // 6 · porqués
+  x+=Object.values(S.base).filter(Boolean).length;                   // 8 · métricas base
+  if(partnerPath()){if(S.qnotes.partner)x+=9;if(S.qnotes.review)x+=9;x+=Math.min(9,Object.keys(S.checks).filter(k=>/^p\d$/.test(k)&&S.checks[k]).length*1.3)}
+  else{QUAL.forEach(q=>{if(S.qnotes[q.k])x+=3});if(S.qnotes.priceMentioned)x+=1;if(S.qnotes.paymentMentioned)x+=1;x+=Math.min(7,qualDone()/3)} // 27
+  return Math.min(100,Math.round(x))}
+const STAGES=[[0,"Arrancando"],[25,"En marcha"],[50,"A mitad de camino"],[75,"Casi lista"],[100,"Quali completa"]];
+function rank(x){let r=STAGES[0];STAGES.forEach(k=>{if(x>=k[0])r=k});return r}
+function nextRank(x){return STAGES.find(k=>k[0]>x)}
+let lastXp=0;
+function popXp(el){const x=xp(),d=x-lastXp;lastXp=x;if(d<=0)return;
+  const r=el&&el.getBoundingClientRect?el.getBoundingClientRect():{left:innerWidth/2,top:innerHeight/2,width:0,height:0};
+  const p=document.createElement("div");p.className="pop";p.textContent=`+${d}% progreso`;p.style.left=(r.left+r.width/2)+"px";p.style.top=(r.top)+"px";document.body.appendChild(p);setTimeout(()=>p.remove(),1200)}
+// confetti
+const fx=$("#fx"),ctx=fx.getContext("2d");let parts=[];
+function sizeFx(){fx.width=innerWidth*devicePixelRatio;fx.height=innerHeight*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}sizeFx();addEventListener("resize",sizeFx);
+function burst(x,y,n){const cols=["#36E471","#5CF08E","#FFD166","#EDF6F1","#1FB85B"];for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,v=4+Math.random()*7;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-3,g:.25,l:60+Math.random()*30,c:cols[i%cols.length],s:3+Math.random()*4,r:Math.random()*Math.PI})}if(parts.length===n)tick()}
+function tick(){ctx.clearRect(0,0,innerWidth,innerHeight);parts=parts.filter(p=>p.l>0);parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.vx*=.98;p.l--;p.r+=.1;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.globalAlpha=Math.min(1,p.l/25);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);ctx.restore()});if(parts.length)requestAnimationFrame(tick)}
+
+// ---------- RENDER ----------
+let lastStep=null,lastDetail=null;
+function render(){renderRail();renderStage();renderSheet();save();
+  if(lastStep!==null&&S.step>lastStep){const m=$(`.mile[data-step="${S.step}"] .dot`);const r=m?m.getBoundingClientRect():{left:innerWidth/2,top:80,width:0,height:0};burst(r.left+r.width/2,r.top+r.height/2,S.step===6?140:70)}
+  if(lastStep!==S.step||(S.detail&&lastDetail!==S.detail)){const st=$("#stage"),top=st.getBoundingClientRect().top;if(top<90||top>innerHeight*0.6)st.scrollIntoView({behavior:"smooth",block:"start"})}
+  lastStep=S.step;lastDetail=S.detail}
+function canGo(k){return k===1||(k<=3&&S.persona)||(k>=4&&S.persona&&(S.pains.length||fitVerdict()==="no"))}
+function renderRail(){
+  const p=persona(),pp=partnerPath();
+  const subs=[p?p.name:"—", S.persona?fitLabel():"—", S.pains.length?`${S.pains.length} pain${S.pains.length>1?"s":""}`:"—",
+    S.pains.length?`${ansCount()}/${ansTotal()} datos`:"—", pp?"no aplica":(S.pains.length?`${QUAL.filter(lockOpen).length}/6 candados`:"—"), pp?"derivar":"nota QCALL"];
+  $("#miles").innerHTML=`<div class="fill" style="width:${Math.max(0,(S.step-1))*(83.4/(MILES.length-1))}%"></div>`+MILES.map((m,i)=>{const k=i+1;const cls=k===S.step?"on":(k<S.step?"done":"");
+    return `<button class="mile ${cls}" data-step="${k}" ${canGo(k)?"":"disabled"} title="${esc(m[1])}"><span class="dot">${k<S.step?"✓":k}</span><span class="lbl">${m[0]}</span><span class="sub">${esc(subs[i])}</span></button>`}).join("");
+  $$(".mile").forEach(b=>b.onclick=()=>{S.step=+b.dataset.step;S.detail=null;render()});
+}
+function renderStage(){const st=$("#stage");st.innerHTML=[0,stagePersona,stageCompany,stagePains,stageQuant,stageQual,stageClose][S.step]();}
+
+function placeSpheres(map,items,start=-90){
+  const n=items.length,box=map.getBoundingClientRect(),size=Math.min(box.width,box.height||box.width),R=size/2-72;
+  items.forEach((el,i)=>{const a=(start+i*360/n)*Math.PI/180;el.style.setProperty("--x",(Math.cos(a)*R).toFixed(1)+"px");el.style.setProperty("--y",(Math.sin(a)*R).toFixed(1)+"px");el.style.setProperty("--delay",(i*-.7)+"s")});
+}
+function tipFor(el,html){const tip=$("#tip"),map=$("#map");if(!tip||!map)return;tip.innerHTML=html;const m=map.getBoundingClientRect(),b=el.getBoundingClientRect();
+  const cx=b.left-m.left+b.width/2;let left=Math.max(8,Math.min(m.width-288,cx-140));let top=b.bottom-m.top+10;if(top+140>m.height)top=b.top-m.top-150;tip.style.left=left+"px";tip.style.top=top+"px";tip.classList.add("show")}
+function hideTip(){const t=$("#tip");if(t)t.classList.remove("show")}
+
+// ---- Level 1: Persona ----
+function stagePersona(){
+  setTimeout(()=>{const map=$("#map");if(!map)return;const bs=$$(".sphere.persona");placeSpheres(map,bs);
+    bs.forEach(b=>{const p=PERSONAS.find(x=>x.id===b.dataset.id);
+      b.onclick=()=>{if(S.persona!==p.id){S.pains=[];S.answers={};S.why={};S.boss=0;S.detail=null}S.persona=p.id;hideTip();
+        bs.forEach(o=>{if(o!==b)o.classList.add("out")});b.classList.remove("float");b.style.setProperty("--x","0px");b.style.setProperty("--y","0px");b.style.setProperty("--d","172px");
+        const r=b.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,40);
+        setTimeout(()=>{S.step=2;render()},560)};
+      b.onmouseenter=()=>tipFor(b,`<div class="k">Rol en la venta</div><p class="role">${esc(p.role)}</p>`);b.onfocus=b.onmouseenter;b.onmouseleave=hideTip;b.onblur=hideTip})},0);
+  return `<div class="eyebrow">Nivel 1 · Persona</div><h1>¿Con quién estás hablando?</h1>
+  <p class="sub">Elige tu interlocutor. Cada perfil abre un mapa de pains distinto y juega un papel distinto en la compra. Pasa el ratón para ver su rol.</p>
+  <div class="map" id="map"><div class="ring"></div><div class="ring r2"></div><div class="tip" id="tip"></div>
+    <div class="sphere core"><div><small>Enginy</small>AI Sales OS</div></div>
+    ${PERSONAS.map(p=>`<button class="sphere persona float" data-id="${p.id}"><div><span class="t">${esc(p.name)}</span><em>${esc(p.sub)}</em></div></button>`).join("")}
+  </div>`;
+}
+
+// ---- Level 2: Company (card deck + shields) ----
+function visibleCards(){return CO_CARDS.filter(c=>!c.dep||S.co[c.dep[0]]===c.dep[1])}
+function stageCompany(){
+  const p=persona(); if(!p){S.step=1;return stagePersona()}
+  const cards=visibleCards(); if(S.ci>cards.length)S.ci=cards.length;
+  const v=fitVerdict(),cs=fitCrit(),card=cards[S.ci],done=cards.filter(c=>S.co[c.k]).length;
+  setTimeout(()=>{
+    $$(".dots i").forEach(d=>d.onclick=()=>{S.ci=+d.dataset.i;render()});
+    const inp=$("#cin");if(inp){inp.focus();inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();commitCard()}}}
+    $$(".opt").forEach(o=>o.onclick=()=>{S.co[card.k]=o.dataset.v;popXp(o);advance()});
+    const n=$("#cnext"),s=$("#cskip"),bk=$("#cback");if(n)n.onclick=commitCard;if(s)s.onclick=()=>{S.skipped[card.k]=1;advance()};if(bk)bk.onclick=()=>{S.ci=Math.max(0,S.ci-1);render()};
+    $$(".answered button").forEach(b=>b.onclick=()=>{S.ci=cards.findIndex(c=>c.k===b.dataset.k);render()});
+    const go=$("#next"),d=$("#derive"),b1=$("#back");if(go)go.onclick=()=>{S.step=3;render()};if(d)d.onclick=()=>{S.step=6;render()};if(b1)b1.onclick=()=>{S.step=1;render()};
+    const jl=$("#jumploot");if(jl)jl.onclick=()=>{S.ci=cards.findIndex(c=>c.loot);render()};
+    function commitCard(){const i=$("#cin");if(i){if(!i.value.trim()){delete S.co[card.k];S.skipped[card.k]=1;lastXp=xp()}else{S.co[card.k]=i.value.trim();delete S.skipped[card.k];popXp(i)}}advance()}
+    function advance(){S.ci=Math.min(cards.length,S.ci+1);render()}
+  },0);
+  const shields=`<div class="shields">${cs.map(c=>`<div class="shield ${c.v===true?"ok":c.v===false?"ko":""}"><div class="ico">${c.ico}</div><b>${esc(c.t)}</b><small>${esc(c.detail)}</small></div>`).join("")}</div>`;
+  const dots=`<div class="dots">${cards.map((c,i)=>`<i data-i="${i}" class="${i===S.ci?"on":S.co[c.k]?"done":S.skipped[c.k]?"skip":""}" title="${esc(c.ask)}"></i>`).join("")}</div>`;
+  let body;
+  if(card){
+    const val=S.co[card.k]||"";
+    const input=card.type==="text"?`<div class="in"><input type="text" id="cin" placeholder="${esc(card.ph)}" value="${esc(val)}" autocomplete="off"></div>`
+      :`<div class="opts">${(card.type==="yn"?[["yes","Sí"],["no","No"]]:card.opts).map(o=>`<button class="opt ${o[0]==="no"?"no":""} ${val===o[0]?"on":""}" data-v="${o[0]}">${o[1]}</button>`).join("")}</div>`;
+    body=`${dots}<div class="qcardbig"><div class="k"><span>${card.core?"🛡️ Criterio ICP":card.loot?"🎒 Loot · sección "+esc(card.why.split(" ")[0]):"Pregunta"} · ${S.ci+1}/${cards.length}</span><span class="xp">+${card.core?4:card.k==="contact"||card.k==="icpPersona"?2:1}% progreso</span></div>
+      <div class="ask">${esc(card.ask)}</div><div class="why">${esc(card.why)}</div>${input}
+      <div class="nav"><button class="btn ghost" id="cback" ${S.ci===0?"disabled":""}>←</button>${card.type==="text"?`<button class="btn primary" id="cnext">Guardar <kbd>↵</kbd></button>`:""}<button class="btn ghost" id="cskip">Saltar por ahora</button>
+      <span class="sp">${card.core?"":"Opcional · vuelve cuando salga en la conversación"}</span></div></div>`;
+  } else {
+    body=`${dots}<div class="qcardbig" style="min-height:0"><div class="k"><span>Baraja completada</span><span class="xp">${done}/${cards.length} respondidas</span></div><div class="ask">${v==="yes"?"Empresa target confirmada.":v==="no"?"Esta empresa no es ICP-fit.":"Faltan escudos por confirmar."}</div><div class="why">${v==="pending"?"Puedes seguir a Descubrir y volver aquí cuando salgan los datos; los escudos se encienden solos.":v==="no"?"Falla: "+cs.filter(c=>c.v===false).map(c=>c.t.toLowerCase()).join(", ")+". No hay demo: deriva a Partner.":"Cuatro escudos encendidos. A por los pains."}</div></div>`;
+  }
+  const answered=cards.filter(c=>S.co[c.k]);
+  const coreLeft=cards.filter(c=>c.core&&!S.co[c.k]).length;
+  return `<div class="eyebrow">Nivel 2 · Empresa <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>¿Es una empresa target?</h1>
+  <p class="sub">Cuatro escudos, siempre, hables con quien hables. Una pregunta por carta; si no toca ahora, salta y vuelve. Las cartas con 🎒 son loot para la nota, no bloquean nada.</p>
+  ${shields}<div class="deck">${body}
+  ${answered.length?`<div class="answered">${answered.map(c=>`<button data-k="${c.k}">${esc(c.ask.replace(/[“”]/g,"").slice(0,22))}… <b>${esc(String(S.co[c.k]).slice(0,18))}</b></button>`).join("")}</div>`:""}</div>
+  <div class="verdict ${v}"><div><b>${v==="yes"?"ICP-fit ✓":v==="no"?"No ICP-fit":coreLeft?`${coreLeft} criterio${coreLeft>1?"s":""} sin confirmar`:"Veredicto pendiente"}</b><span>${v==="yes"?"Cumple los cuatro criterios.":v==="no"?"Cualifica brevemente y deriva a Partner.":"Puedes seguir y volver aquí."}</span></div>
+    <div class="row"><button class="btn ghost" id="back">← Persona</button>${card&&card.core===undefined&&!card.loot?"":""}${v==="no"?`<button class="btn ghost" id="next">Seguir igualmente</button><button class="btn warn" id="derive">Derivar y cerrar →</button>`:`<button class="btn primary" id="next">Descubrir pains →</button>`}</div></div>`;
+}
+
+// ---- Level 3: Pains (orbit) ----
+function stagePains(){
+  const p=persona(); if(!p){S.step=1;return stagePersona()}
+  const list=S.view==="list";
+  setTimeout(()=>{
+    const map=$("#map");
+    if(map){const bs=$$(".sphere.pain");placeSpheres(map,bs);requestAnimationFrame(()=>requestAnimationFrame(()=>bs.forEach(b=>b.classList.remove("born"))));
+      bs.forEach(b=>{const x=PAINS[b.dataset.id];b.onclick=()=>openDetail(b.dataset.id,b);
+        b.onmouseenter=()=>tipFor(b,`<div class="k">Para detectarlo, pregunta</div>${x.d.map(q=>`<p>“${esc(q)}”</p>`).join("")}`);b.onfocus=b.onmouseenter;b.onmouseleave=hideTip;b.onblur=hideTip})}
+    $$(".pcard").forEach(c=>c.onclick=()=>openDetail(c.dataset.id,c));
+    $$(".seg button").forEach(b=>b.onclick=()=>{S.view=b.dataset.v;render()});
+    const d=$("#drawer");if(d&&S.detail)requestAnimationFrame(()=>d.classList.add("open"));
+    $$(".js-close").forEach(c=>c.onclick=()=>closeDetail(false));const r=$("#remove");if(r)r.onclick=()=>closeDetail(true);
+    const a=$("#back1"),n=$("#next");if(a)a.onclick=()=>{S.step=2;render()};if(n)n.onclick=()=>{S.step=4;S.boss=0;render()};
+  },0);
+  const pp=partnerPath();
+  return `<div class="eyebrow">Nivel 3 · Descubrir <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>¿Qué pains detectas?</h1>
+  <p class="sub">Cada esfera lleva una pista. Pasa el ratón y verás las dos preguntas que lo destapan. Cuando el prospect lo confirme, haz clic: +3% de progreso y se abre cómo cuantificarlo y cómo posicionar Enginy.</p>
+  <div class="toolbar"><div class="seg"><button data-v="map" class="${S.view==="map"?"on":""}">Mapa</button><button data-v="list" class="${S.view==="list"?"on":""}">Lista con preguntas</button></div><span class="empty" style="margin-left:auto">${esc(p.role)}</span></div>
+  ${list?`<div class="plist">${p.pains.map(id=>{const x=PAINS[id];return `<button class="pcard ${S.pains.includes(id)?"sel":""} ${x.partner?"partner":""}" data-id="${id}"><span class="code">${id}${S.pains.includes(id)?" · DETECTADO ✓":""}</span><span class="t">${esc(x.t)}</span><span class="say">“${esc(x.say)}”</span><span class="q"><b>Pregunta</b>${esc(x.d[0])}</span></button>`}).join("")}</div>`
+  :`<div class="map" id="map"><div class="ring"></div><div class="ring r2"></div><div class="tip" id="tip"></div>
+    <div class="sphere core"><div><small>Hablas con</small>${esc(p.name)}</div></div>
+    ${p.pains.map(id=>{const x=PAINS[id];const sel=S.pains.includes(id);return `<button class="sphere pain born ${sel?"sel":"float"} ${x.partner?"partner":""}" data-id="${id}">${sel?'<span class="tick">✓</span>':""}<div><span class="code">${id}</span><span class="t">${esc(x.t)}</span><span class="hint">${esc(x.hint)}</span></div></button>`}).join("")}
+  </div>
+  <div class="legend"><span><i style="background:linear-gradient(150deg,var(--sphere-a),var(--sphere-b))"></i>Posible pain</span><span><i style="background:linear-gradient(150deg,#5CF08E,#1FB85B)"></i>Detectado</span><span><i style="background:linear-gradient(150deg,#8A6A2A,#4A3610)"></i>Fuera de ICP → Partner</span></div>`}
+  <div class="foot"><span class="count">${S.pains.length} detectado${S.pains.length===1?"":"s"}${pp?" · ruta Partner":""}</span><button class="btn ghost" id="back1">← Empresa</button><button class="btn ${pp?"warn":"primary"}" id="next" ${S.pains.length||pp?"":"disabled"}>${pp?"Confirmar y derivar →":"Cuantificar →"}</button></div>
+  <div class="drawer" id="drawer">${S.detail?drawer(S.detail,p):""}</div>`;
+}
+function openDetail(id,el){const was=S.pains.includes(id);if(!was)S.pains.push(id);S.detail=id;hideTip();if(!was)popXp(el);render()}
+function closeDetail(remove){if(remove)S.pains=S.pains.filter(i=>i!==S.detail);const d=$("#drawer");if(d)d.classList.remove("open");setTimeout(()=>{S.detail=null;lastXp=xp();render()},320)}
+function drawer(id,p){
+  const x=PAINS[id],angle=x.angle&&x.angle[p.id];
+  return `<header><div><div class="code">${id}${x.partner?" · FUERA DE ICP":" · DETECTADO +3%"}</div><h2>${esc(x.t)}</h2><div class="say">“${esc(x.say)}”</div></div><button class="back js-close">← Volver al mapa</button></header>
+  <div class="cols">
+    <div class="card"><h3>Preguntas para cuantificar</h3><ol>${x.quant.map(q=>`<li class="q">${esc(q[0])}</li>`).join("")}</ol><p style="margin-top:8px;color:var(--muted);font-size:12.5px">Las apuntarás con números en el nivel 4.</p></div>
+    <div class="card impact"><h3>Impacto que debes hacer explícito</h3><p>${esc(x.impact)}</p>${angle?`<h3 style="margin-top:12px">Ángulo con ${esc(p.name)}</h3><p>${esc(angle)}</p>`:""}</div>
+    <div class="card ${x.partner?"partner":""}"><h3>${x.partner?"Por qué no es ICP":"Cómo posicionar Enginy"}</h3>${x.prod.length?`<div class="chips">${x.prod.map(k=>`<span class="chip">${esc(PRODUCTS[k])}</span>`).join("")}</div>`:""}<p>${esc(x.how)}</p></div>
+    <div class="card ${x.partner?"partner":""}"><h3>${x.partner?"Qué hace el SDR":"Estrategia"}</h3><p>${esc(x.strat)}</p></div>
+  </div>
+  <div class="actions"><button class="btn primary js-close">Seguir descubriendo</button><button class="btn ghost" id="remove">No aplica, quitar</button></div>`;
+}
+
+// ---- Level 4: Quantify (boss cards + loot deck) ----
+function stageQuant(){
+  const p=persona(); if(!p||(!S.pains.length&&!partnerPath())){S.step=3;return stagePains()}
+  const ids=S.pains, bossIdx=Math.min(S.boss,ids.length), isLoot=bossIdx===ids.length, pp=partnerPath();
+  setTimeout(()=>{
+    $$(".boss").forEach(b=>b.onclick=()=>{S.boss=+b.dataset.i;render()});
+    $$(".ans").forEach(i=>{i.oninput=()=>{const[id,k]=i.dataset.a.split(":");S.answers[id]=S.answers[id]||[];S.answers[id][+k]=i.value;save();renderRail();renderSheet();refreshBoss()};
+      i.onchange=()=>{if(i.value.trim()){i.classList.add("hit");popXp(i)}}});
+    $$(".why").forEach(i=>{i.oninput=()=>{S.why[i.dataset.w]=i.value;save();renderSheet()};i.onchange=()=>{if(i.value.trim())popXp(i)}});
+    const flds=$$(".challenge .ans, .challenge .why");flds.forEach((f,ix)=>f.onkeydown=e=>{if(e.key!=="Enter")return;e.preventDefault();f.dispatchEvent(new Event("change"));const nx=flds[ix+1];if(nx)nx.focus();else{const b=$("#nextboss");if(b)b.click()}});
+    const bi=$("#bin");if(bi){bi.focus();bi.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();commitBase()}}}
+    const bn=$("#bnext"),bs=$("#bskip"),bb=$("#bback");if(bn)bn.onclick=commitBase;if(bs)bs.onclick=()=>{S.bi=Math.min(BASE_CARDS.length,S.bi+1);render()};if(bb)bb.onclick=()=>{S.bi=Math.max(0,S.bi-1);render()};
+    $$(".dots i").forEach(d=>d.onclick=()=>{S.bi=+d.dataset.i;render()});
+    $$(".answered button").forEach(b=>b.onclick=()=>{S.bi=BASE_CARDS.findIndex(c=>c.k===b.dataset.k);render()});
+    const nb=$("#nextboss");if(nb)nb.onclick=()=>{S.boss=bossIdx+1;render()};
+    $("#back").onclick=()=>{S.step=3;render()};$("#next").onclick=()=>{S.step=5;render()};
+    function commitBase(){const c=BASE_CARDS[S.bi],i=$("#bin");if(i&&i.value.trim()){S.base[c.k]=i.value.trim();popXp(i)}S.bi=Math.min(BASE_CARDS.length,S.bi+1);render()}
+    function refreshBoss(){$$(".boss").forEach(b=>{const id=b.dataset.id;if(!id)return;const a=(S.answers[id]||[]).filter(Boolean).length,t=PAINS[id].quant.length;b.querySelector(".hp i").style.width=(100*a/t)+"%";b.classList.toggle("full",a===t)})}
+  },0);
+  const tabs=`<div class="bosses">${ids.map((id,i)=>{const a=(S.answers[id]||[]).filter(Boolean).length,t=PAINS[id].quant.length;return `<button class="boss ${i===bossIdx?"on":""} ${a===t?"full":""}" data-i="${i}" data-id="${id}">${id} <span class="hp"><i style="width:${100*a/t}%"></i></span></button>`}).join("")}<button class="boss ${isLoot?"on":""}" data-i="${ids.length}">🎒 Métricas base <span class="hp"><i style="width:${100*Object.values(S.base).filter(Boolean).length/BASE_CARDS.length}%"></i></span></button></div>`;
+  let body;
+  if(!isLoot){const id=ids[bossIdx],x=PAINS[id],a=S.answers[id]||[];
+    body=`<div class="challenge"><div class="k" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">${id} · boss ${bossIdx+1}/${ids.length} · +1% por dato · +2% por el porqué</div><h2>${esc(x.t)}</h2><p class="goal">“${esc(x.say)}”</p>
+      <div class="bossbody"><div>${x.quant.map((q,k)=>`<div class="qrow"><div class="q">${esc(q[0])}</div><input class="ans ${a[k]?"hit":""}" id="a-${id}-${k}" data-a="${id}:${k}" placeholder="${esc(q[1])}" value="${esc(a[k]||"")}" autocomplete="off"></div>`).join("")}
+        <div class="qrow why-row"><div class="q"><b>¿Por qué les duele?</b> Pregúntalo y apúntalo en sus palabras, sin asumir.</div><input class="why" id="why-${id}" data-w="${id}" placeholder="ej. “porque el AE pierde dos horas al día en reuniones que no van a ningún sitio”" value="${esc(S.why[id]||"")}" autocomplete="off"></div></div>
+      <div class="side"><div class="frame"><b>Frase de impacto</b>${esc(x.frame)}</div><h4>${x.partner?"Por qué no es ICP":"Posicionar Enginy"}</h4>${x.prod.length?`<div class="chips">${x.prod.map(k=>`<span class="chip">${esc(PRODUCTS[k].split(" (")[0])}</span>`).join("")}</div>`:""}<p>${esc(x.how)}</p></div></div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="nextboss">${bossIdx+1<ids.length?"Siguiente pain →":"Métricas base →"}</button></div></div>`;
+  } else {
+    const c=BASE_CARDS[Math.min(S.bi,BASE_CARDS.length)],done=Object.values(S.base).filter(Boolean).length;
+    const dots=`<div class="dots">${BASE_CARDS.map((b,i)=>`<i data-i="${i}" class="${i===S.bi?"on":S.base[b.k]?"done":""}" title="${esc(b.ask)}"></i>`).join("")}</div>`;
+    body=c?`<div class="deck">${dots}<div class="qcardbig"><div class="k"><span>🎒 Loot · ${S.bi+1}/${BASE_CARDS.length}</span><span class="xp">+1% progreso</span></div><div class="ask">${esc(c.ask)}</div><div class="why">${esc(c.why)}</div>
+      <div class="in"><input type="text" id="bin" placeholder="${esc(c.ph)}" value="${esc(S.base[c.k]||"")}" autocomplete="off"></div>
+      <div class="nav"><button class="btn ghost" id="bback" ${S.bi===0?"disabled":""}>←</button><button class="btn primary" id="bnext">Guardar <kbd>↵</kbd></button><button class="btn ghost" id="bskip">Saltar</button><span class="sp">Si ya salió con un pain, cópialo</span></div></div>
+      <div class="answered">${BASE_CARDS.filter(b=>S.base[b.k]).map(b=>`<button data-k="${b.k}">${esc(BLBL[b.k])} <b>${esc(S.base[b.k])}</b></button>`).join("")}</div></div>`
+      :`<div class="deck"><div class="qcardbig" style="min-height:0"><div class="k"><span>Loot completado</span><span class="xp">${done}/${BASE_CARDS.length}</span></div><div class="ask">${done>=6?"Number Cruncher desbloqueado.":"Puedes volver a por las que falten."}</div></div><div class="answered">${BASE_CARDS.filter(b=>S.base[b.k]).map(b=>`<button data-k="${b.k}">${esc(BLBL[b.k])} <b>${esc(S.base[b.k])}</b></button>`).join("")}</div></div>`;
+  }
+  return `<div class="eyebrow">Nivel 4 · Cuantificar <span class="tag">${esc(p.name)}</span></div><h1>${pp?"Confirma el estado antes de derivar":"Pon números a cada pain"}</h1>
+  <p class="sub">${pp?"Dos o tres datos bastan para no equivocarte de ruta y para que el Partner reciba contexto útil.":"Un pain cada vez. La barra de cada boss se llena con cada número; con uno bueno por pain ya vale. Los números alimentan el script de cierre y la nota."}</p>
+  ${tabs}${body}
+  <div class="foot"><span class="count">${ansCount()}/${ansTotal()} datos de pains · ${Object.values(S.base).filter(Boolean).length}/${BASE_CARDS.length} métricas base</span><button class="btn ghost" id="back">← Descubrir</button><button class="btn ${pp?"warn":"primary"}" id="next">${pp?"Derivar a Partner →":"Mapear →"}</button></div>`;
+}
+
+// ---- Level 5: Mapear (locks) ----
+function stageQual(){
+  const p=persona(); if(!p||(!S.pains.length&&!partnerPath())){S.step=3;return stagePains()}
+  setTimeout(()=>{$("#back").onclick=()=>{S.step=4;render()};$("#next").onclick=()=>{S.step=6;render()};
+    $$(".lock").forEach(l=>l.onclick=()=>{S.lock=S.lock===l.dataset.k?null:l.dataset.k;render()});
+    $$(".qchip").forEach(c=>c.onclick=()=>{const k=c.dataset.k;S.checks[k]=!S.checks[k];c.classList.toggle("on",S.checks[k]);c.querySelector(".box").textContent=S.checks[k]?"✓":"";if(S.checks[k])popXp(c);save();renderRail();renderSheet()});
+    $$(".qn").forEach(i=>{i.oninput=()=>{S.qnotes[i.dataset.n]=i.value;save();renderSheet()};i.onchange=()=>{if(i.value.trim()){popXp(i)}};i.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();const b=$("#closelock");if(b)b.click();else{const nx=i.nextElementSibling;if(nx&&nx.focus)nx.focus()}}}});
+    $$(".tg").forEach(b=>b.onclick=()=>{S.qnotes[b.dataset.t]=S.qnotes[b.dataset.t]===b.dataset.v?"":b.dataset.v;save();popXp(b);render()});
+    const cl=$("#closelock");if(cl)cl.onclick=()=>{const c=QUAL.find(x=>x.k===S.lock);const i=$("#qn-"+c.k);if(i&&i.value.trim())S.qnotes[c.k]=i.value.trim();const wasOpen=lockOpen(c);const nx=QUAL[QUAL.indexOf(c)+1];S.lock=nx&&!lockOpen(nx)?nx.k:null;render();if(!wasOpen&&lockOpen(c)){const el=$(`.lock[data-k="${c.k}"]`);if(el){const r=el.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,40)}}};
+  },0);
+  if(partnerPath()){
+    const ids=S.pains.filter(i=>PAINS[i].partner),why=fitVerdict()==="no"?fitCrit().filter(c=>c.v===false).map(c=>c.t.toLowerCase()).join(", "):ids.join(" y ");
+    return `<div class="eyebrow">Nivel 5 · Ruta Partner</div><h1>No es ICP: ciérralo bien y derívalo</h1>
+    <p class="sub">Motivo: ${esc(why)}. No hay demo ni cualificación de presupuesto. El objetivo es dejar buena impresión, pasar el lead a un Partner y fijar la fecha de revisión.</p>
+    <div class="challenge"><h2>Checklist de derivación</h2><p class="goal">Marca lo que hagas.</p><div class="qchips">
+      ${[["p0","“¿Hay hoy alguien dedicado a prospectar, aunque sea a tiempo parcial?”"],["p1","“¿Pensáis contratar comercial en los próximos 6 meses?”"],["p2","Decir: “Enginy aporta valor cuando ya hay un equipo prospectando cada día. Hoy os haría perder dinero.”"],["p3","Decir: “Os presento a [Partner], que ayuda a montar el proceso y la primera contratación.”"],["p4","Email de intro al Partner con el prospect en copia y 3 líneas de contexto"],["p5","HubSpot: estado “Partner referral”, motivo y Partner"],["p6","Alerta de intent: oferta de SDR / AE / Head of Sales publicada"]].map(q=>`<button class="qchip ${S.checks[q[0]]?"on":""}" data-k="${q[0]}"><span class="box">${S.checks[q[0]]?"✓":""}</span><span>${esc(q[1])}</span></button>`).join("")}</div>
+      <div class="ans"><input class="qn" id="qn-partner" data-n="partner" placeholder="Nombre del Partner" value="${esc(S.qnotes.partner||"")}"><input class="qn" id="qn-review" data-n="review" placeholder="Fecha de revisión (ej. abril 2027)" value="${esc(S.qnotes.review||"")}"></div>
+      <p class="flag">Si contesta que sí a las dos primeras y ya hay un SDR arrancando, vuelve a Empresa y revisa los escudos.</p></div>
+    <div class="foot"><button class="btn ghost" id="back">← Cuantificar</button><button class="btn warn" id="next">Nota de la QCALL →</button></div>`;
+  }
+  const extras={};S.pains.forEach(id=>{if(EXTRA[id])Object.entries(EXTRA[id]).forEach(([n,q])=>{(extras[n]=extras[n]||[]).push([id,q])})});
+  const opened=QUAL.filter(lockOpen).length;
+  const locks=`<div class="locks">${QUAL.map(c=>`<button class="lock ${lockOpen(c)?"open":""} ${S.lock===c.k?"on":""}" data-k="${c.k}"><div class="ico">${lockOpen(c)?"🔓":c.ico}</div><b>${esc(c.t)}</b><small>${c.snip} · ${c.q.filter((q,k)=>S.checks[c.n+k]).length}/${c.q.length+(extras[c.n]||[]).length} preguntas</small></button>`).join("")}</div>`;
+  let ch="";
+  if(S.lock){const c=QUAL.find(x=>x.k===S.lock);const ex=extras[c.n]||[];const qs=c.q.map((q,k)=>[c.n+k,q,false]).concat(ex.map(([id,q])=>["x"+id+c.n,q,true]));
+    ch=`<div class="challenge"><div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Candado ${c.n} · sección ${c.snip} · +3% por la respuesta</div><h2>${c.ico} ${esc(c.t)}</h2><p class="goal">${esc(c.goal)}</p>
+      <div class="qchips">${qs.map(q=>`<button class="qchip ${S.checks[q[0]]?"on":""} ${q[2]?"extra":""}" data-k="${q[0]}"><span class="box">${S.checks[q[0]]?"✓":""}</span><span>${q[2]?'<span class="plus">+</span>':""}${esc(q[1])}</span></button>`).join("")}</div>
+      ${(c.toggles||[]).map(t=>`<div class="row" style="margin-bottom:10px"><span style="font-size:13.5px;color:var(--muted)">${esc(t[1])}</span><div class="seg"><button class="tg ${S.qnotes[t[0]]==="yes"?"on":""}" data-t="${t[0]}" data-v="yes">Sí</button><button class="tg ${S.qnotes[t[0]]==="no"?"on":""}" data-t="${t[0]}" data-v="no">No</button></div></div>`).join("")}
+      <div class="ans"><input class="qn" id="qn-${c.k}" data-n="${c.k}" placeholder="${esc(c.note)}…" value="${esc(S.qnotes[c.k]||"")}" autocomplete="off"><button class="btn primary" id="closelock">${lockOpen(c)?"Actualizar y seguir":"Abrir candado →"}</button></div>
+      ${c.k==="process"&&p.champion?`<p class="flag">Con ${esc(p.name)} el objetivo de la call es la intro: "¿Me presentas a ${esc(p.dm)} para enseñarle esto con vuestros números?"</p>`:c.k==="process"?`<p class="flag">Decisor esperado con ${esc(p.name)}: ${esc(p.dm)}. Que esté en la demo.</p>`:""}</div>`;
+  } else ch=`<div class="empty" style="text-align:center;padding:10px">Elige un candado para abrirlo. ${opened===6?"Los seis abiertos: quali mapeada.":""}</div>`;
+  return `<div class="eyebrow">Nivel 5 · Mapear <span class="tag">${esc(p.name)}</span> <span class="tag">${opened}/6 candados</span></div><h1>¿Puede comprar? Abre los seis candados</h1>
+  <p class="sub">Cada candado es una sección de la nota (G a L). Dentro: las preguntas para decirlas tal cual, y un hueco para la respuesta corta. Las preguntas con + vienen de los pains detectados.</p>
+  ${locks}${ch}
+  <div class="foot"><span class="count">${qualDone()}/${qualTotal()} preguntas hechas</span><button class="btn ghost" id="back">← Cuantificar</button><button class="btn primary" id="next">Cerrar misión →</button></div>`;
+}
+
+// ---- Level 6: Close (mission complete + note) ----
+function fill(frame,id){const a=S.answers[id]||[];let i=0;return frame.replace(/\[[^\]]+\]/g,m=>{const v=a[i++];return v?`<mark>${esc(v)}</mark>`:`<mark class="miss">${esc(m)}</mark>`})}
+function missing(){const c=S.co,q=S.qnotes,b=S.base,m=[];
+  const need=[["contact","Nombre y cargo"],["location","Ubicación"],["business","Líneas de negocio"],["employees","Nº empleados"],["reps","Nº sales reps"],["icpCountries","ICP · países"],["icpIndustries","ICP · industrias"],["icpSize","ICP · tamaño"],["icpPersona","Buyer persona"],["crm","CRM"],["listTools","Herramientas de listas"],["seqTool","Herramienta de secuencias"]];
+  need.forEach(n=>{if(!c[n[0]])m.push(n[1])});if(!c.icpDigital)m.push("¿Persona en LinkedIn?");if(!c.outbound)m.push("¿Hacen outbound?");if(!c.ai)m.push("¿Usan IA?");if(!c.coldCall)m.push("Canales de outreach");
+  BASE_CARDS.forEach(x=>{if(!b[x.k])m.push(x.ask.replace(/[“”]/g,""))});if(!partnerPath()){["impact","competitors","timing","criteria","process"].forEach(k=>{if(!q[k])m.push(QUAL.find(x=>x.k===k).t)});if(!q.priceMentioned)m.push("¿Mencionaste precio?");if(!q.paymentMentioned)m.push("¿Mencionaste modelo de pago?")}
+  return m}
+function stageClose(){
+  const p=persona(); if(!p||(!S.pains.length&&!partnerPath())){S.step=3;return stagePains()}
+  const x=xp(),r=rank(x),nr=nextRank(x),miss=missing(),pp=partnerPath(),main=S.pains.filter(i=>!PAINS[i].partner).slice(0,2);
+  const pct=x,C=2*Math.PI*86;
+  setTimeout(()=>{const ta=$("#sum");ta.value=qcallText();$("#copy").onclick=()=>copy(ta.value,"toast");$("#back").onclick=()=>{S.step=5;render()};$("#again").onclick=resetAll;
+    $$(".jump").forEach(b=>b.onclick=()=>{S.step=+b.dataset.s;render()});
+    const arc=$("#arc");if(arc)requestAnimationFrame(()=>arc.style.strokeDashoffset=C*(1-pct/100));
+    if(!S._celebrated){S._celebrated=1;save();burst(innerWidth/2,200,120)}},0);
+  return `<div class="eyebrow">Nivel 6 · ${pp?"Derivar":"Cerrar"} <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>${pp?"Misión: derivar a Partner":x>=100?"Quali completada":"Fin de la llamada"}</h1>
+  <div class="mission"><div class="ringwrap"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="86" fill="none" stroke="var(--line)" stroke-width="12"/><circle id="arc" cx="100" cy="100" r="86" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" style="transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1)"/><defs><linearGradient id="g"><stop offset="0" stop-color="#1FB85B"/><stop offset="1" stop-color="#FFD166"/></linearGradient></defs></svg><div class="num"><b>${x}%</b><small>progreso</small></div></div>
+    <div><span class="rank">★ ${r[1]}</span><p style="margin:10px 0 12px;color:var(--muted)">${nr?`Progreso ${x}%: te faltan ${nr[0]-x} punto${nr[0]-x===1?"":"s"} para “${nr[1]}”. `:"Progreso 100%. "}${pp?"Derivación bien hecha: deja la cuenta lista para revisar.":"Pide la demo con el decisor usando el script; luego copia la nota al deal."}</p>
+    <div class="badges">${BADGES.map(b=>`<div class="badge ${b[4]()?"on":""}"><div class="b">${b[1]}</div><div><span>${esc(b[2])}</span><small>${esc(b[3])}</small></div></div>`).join("")}</div></div></div>
+  <div class="script"><h3>Script de cierre</h3>
+  ${pp?`<p>“Os lo digo con transparencia: Enginy funciona cuando ya hay un equipo prospectando cada día. Hoy os haría perder dinero. Lo que sí os ayuda es montar el proceso y la primera contratación, y para eso os presento a <mark class="${S.qnotes.partner?"":"miss"}">${esc(S.qnotes.partner||"[Partner]")}</mark>. Cuando tengáis a esa persona, volvemos a hablar.”</p>`
+  :`${main.map(i=>`<p>“${fill(PAINS[i].frame,i)}”</p>`).join("")}
+  <p>“Lo que hacemos con equipos como el vuestro es exactamente eso: <mark>${esc(uniqProducts().slice(0,3).map(s=>s.split(" (")[0]).join(", "))}</mark>, en una sola plataforma.”</p>
+  <p>“Te propongo una demo de 30 minutos con vuestros datos: construimos una lista de vuestro ICP en directo y ves el mensaje que saldría. Para no hacer dos rondas, ¿incluimos a <mark>${esc(S.qnotes.process||p.dm)}</mark>? ¿Jueves o viernes te va mejor?”</p>`}
+  </div>
+  ${miss.length?`<div class="missbox"><b>${miss.length} campos de la nota sin respuesta.</b> Si aún estás en la call, pregúntalos ahora: ${miss.slice(0,8).map(esc).join(" · ")}${miss.length>8?" · …":""} <span class="row" style="margin-top:8px"><button class="btn ghost jump" data-s="2">Ir a Empresa</button><button class="btn ghost jump" data-s="4">Ir a Cuantificar</button><button class="btn ghost jump" data-s="5">Ir a Mapear</button></span></div>`:`<div class="missbox ok"><b>Nota completa.</b> Todos los campos tienen respuesta.</div>`}
+  <div class="eyebrow" style="margin-top:14px">Nota de la QCALL · pegar en el deal de HubSpot</div>
+  <textarea class="sum" id="sum"></textarea>
+  <div class="foot"><span class="toast" id="toast"></span><button class="btn ghost" id="back">← Mapear</button><button class="btn ghost" id="again">Nueva partida</button><button class="btn primary" id="copy">Copiar nota</button></div>`;
+}
+const YN=v=>v==="yes"?"Yes":v==="no"?"No":"—";
+const V=v=>(v||"").trim()||"—";
+function qcallText(){
+  const p=persona(); if(!p) return ""; const c=S.co,q=S.qnotes,b=S.base,pp=partnerPath();
+  const d=new Date(),date=`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(2)}`;
+  const crit=fitCrit().map(x=>`${x.v===true?"✓":x.v===false?"✗":"?"} ${x.t}`).join(" · ");
+  const keywords=[...S.pains.map(i=>S.why[i]).filter(Boolean),S.quick].filter(Boolean);
+  const painsBlock=S.pains.length?S.pains.map(i=>{const x=PAINS[i],a=S.answers[i]||[];const lines=[`• ${i} · ${x.t} — "${x.say}"`];x.quant.forEach((qq,k)=>{if(a[k])lines.push(`   - ${qq[0]}: ${a[k]}`)});lines.push(`   - Why (in their words): ${V(S.why[i])}`);return lines.join("\n")}).join("\n"):"• —";
+  const L=[`QCALL - ${date}`,
+`ICP-FIT: ${fitVerdict()==="no"?"NO → Partner referral":pp?"NO (pain "+S.pains.filter(i=>PAINS[i].partner).join(", ")+") → Partner referral":fitVerdict()==="yes"?"YES":"PENDING"} (${crit})`,
+`Who are we meeting with? (Recommended: CSO, COO, CEO, CRO, CMO)`,``,`* ${V(c.contact)} (${p.name})`,``,
+`Have they done / Are they doing outbound?`,``,`* ${YN(c.outbound)}${c.process?` · defined process: ${YN(c.process)}`:""}`,``,
+`Are they using any AI for prospecting (Claude, Chat GPT...)?`,``,`* ${YN(c.ai)}${c.aiTool?` · ${c.aiTool}`:""}`,``,
+`Key words/sentences (filled manual):`,``,`* ${keywords.length?keywords.join("\n* "):"—"}`,``,
+`A) COMPANY SITUATION`,`• Location: ${V(c.location)}`,``,`• Business Lines: ${V(c.business)}`,``,`• No. of employees / No. of sales reps / Team structure: ${V(c.employees)} / ${V(c.reps)} / ${V(c.structure)}`,``,
+`B) Client's ICP`,`• Countries: ${V(c.icpCountries)}`,``,`• Industries / Sectors: ${V(c.icpIndustries)}`,``,`• Company Size & Revenue: ${V(c.icpSize)}`,``,`• Buyer Persona: ${V(c.icpPersona)}`,``,`• Is your target persona on LinkedIn?`,`${YN(c.icpDigital)}`,
+`C) LEAD LIST GENERATION & ENRICHMENT PROCESS`,`OPEN QUESTION (WHAT is the process, HOW they use the tools, WHO is in charge of the Lead Generation, HOW MUCH time spent): ${V(c.processOpen)}`,
+`• C.1) CRM: ${V(c.crm)}`,`• C.2) AI Tool: ${c.ai==="no"?"No":V(c.aiTool)}`,`• C.3) List Building Tools/Data Enrichment Tools: ${V(c.listTools)}`,`• C.4) Campaigns/Sequence Tool: ${V(c.seqTool)}`,`• C.5) Sales Navigator Licenses? ${V(c.salesNav)}`,
+`• C.6) "What type of information that you can't find in LinkedIn can be important to find your potential client?": ${V(c.extraInfo)}`,
+`• Ask for emails quality: ${V(b.emailQuality)}`,`• Ask for Email Bounce Rate: ${V(b.bounce||(S.answers.B2||[])[0])}`,`• Ask for reply rate: ${V(b.reply)}`,`• Ask for phone number quality: ${V(b.phoneQuality)}`,
+`D) WHAT DOES A SALES REP'S DAY-TO-DAY LOOK LIKE`,`OPEN QUESTION (TASKS that an Sales Rep. carries out daily and HOW MUCH TIME spend & potential inefficiencies): ${V(c.dayOpen)}`,`Outreach - Prospecting channels (CURRENTLY):`,``,
+`* Cold Call: ${c.coldCall==="no"?"NO":c.coldCall?"YES → "+(c.coldCall==="mobile"?"MOBILE":"OFFICE"):"—"}`,`* Email: ${c.chEmail?YN(c.chEmail).toUpperCase():"—"}`,`* LinkedIn: ${c.chLinkedin?YN(c.chLinkedin).toUpperCase():"—"}`,``,
+`E) VOLUME & RATIOS`,`• HOW MANY COMPANIES are your SDRs contacting per month (week/day)? ${V(b.companiesMonth)}`,``,`• Sales Cycle Average Duration: ${V(b.cycle)}`,``,`• Average ticket per client (MRR/Annual/one-off): ${V(b.ticket)}`,``,`• Current number of clients: ${V(b.clients)}`,``,
+`F) PAINS (WHAT pains are they facing and WHY, MANUALLY)`,painsBlock,
+`G) IMPACT (ROI of Using Enginy, based on their metrics):`,``,`* ${V(q.impact)}${S.pains.length&&!pp?`\n* Positioning: ${uniqProducts().map(s=>s.split(" (")[0]).join(", ")}`:""}`,``,
+`H) COMPETITORS (are they currently looking at other solutions? Which ones?)`,``,`* ${V(q.competitors)}`,``,
+`I) TIMING (when would they start the implementation?)`,``,`* ${V(q.timing)}`,``,
+`J) Decision Criteria (what are they key points you evaluate to make a decision?)`,``,`* ${V(q.criteria)}`,``,
+`K) Decision Process (What are the STEPS and PEOPLE involved in the decision?)`,``,`* ${V(q.process)}${!pp&&!q.process?`\n* Expected decision maker: ${p.dm}`:""}`,``,
+`L) Price and payment terms:`,`• Did you mention price? (${YN(q.priceMentioned).toUpperCase()})`,`• Did you mention payment model? (${YN(q.paymentMentioned).toUpperCase()})`,q.price?`• Notes: ${q.price}`:""];
+  if(pp) L.push(``,`→ NEXT STEP: Partner referral · Partner: ${V(q.partner)} · Review: ${q.review||(S.pains.includes("P2")?"6-9 months":"6 months")}`);
+  else L.push(``,`→ NEXT STEP: demo [date] with ${q.process||p.dm}`);
+  L.push(``,`— Progreso de la quali: ${xp()}% · ${rank(xp())[1]}`);
+  return L.filter(x=>x!==undefined).join("\n");
+}
+function copy(t,tid){(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("Copiado al portapapeles",tid)).catch(()=>{const ta=$("#sum");if(ta){ta.focus();ta.select()}toast("Selecciona y copia (Ctrl/⌘+C)",tid)})}
+function toast(m,id){const t=$("#"+(id||"ntoast"));if(t){t.textContent=m;setTimeout(()=>{if(t.textContent===m)t.textContent=""},2200)}}
+
+// ---- HUD ----
+function renderSheet(){
+  const p=persona(),pp=partnerPath(),x=xp(),r=rank(x),nr=nextRank(x),prev=r[0],span=nr?nr[0]-prev:1,prog=nr?Math.round(100*(x-prev)/span):100;
+  const C=2*Math.PI*27;const pctAll=x;
+  const nums=[];S.pains.forEach(i=>(S.answers[i]||[]).forEach((a,k)=>{if(a)nums.push([i,PAINS[i].quant[k][0],a])}));BASE_CARDS.forEach(b=>{if(S.base[b.k])nums.push(["Base",BLBL[b.k],S.base[b.k]])});
+  $("#sheet").innerHTML=`<h2>Progreso de la quali</h2>
+  <div class="hud"><div class="lvl"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="32" cy="32" r="27" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pctAll/100)}" style="transition:stroke-dashoffset .5s"/></svg><b>${x}</b></div>
+    <div class="t"><b>${r[1]}</b><small>Progreso ${x}%${nr?` · ${nr[0]-x} para “${nr[1]}”`:""}</small><div class="xpbar" style="margin-top:6px"><i style="width:${x}%"></i></div></div></div>
+  <dl class="kv"><dt>Perfil</dt><dd>${p?esc(p.name):'<span class="empty">sin elegir</span>'}</dd>
+  <dt>ICP-fit</dt><dd>${p?`<span class="pill ${fitVerdict()==="yes"?"ok":fitVerdict()==="no"?"w":""}">${esc(fitLabel())}</span>`:'<span class="empty">—</span>'}</dd>
+  <dt>Pains</dt><dd>${S.pains.length?S.pains.map(i=>`<span class="pill ${PAINS[i].partner?"w":""}" title="${esc(PAINS[i].t)}">${i}</span>`).join(""):'<span class="empty">ninguno todavía</span>'}</dd>
+  <dt>Ruta</dt><dd>${!S.pains.length&&!pp?'<span class="empty">—</span>':(pp?'<span class="pill w">Partner referral</span>':'<span class="pill ok">Demo con decisor</span>')}</dd>
+  <dt>Decisor</dt><dd style="font-size:13px">${p?esc(S.qnotes.process||p.dm):'<span class="empty">—</span>'}</dd></dl>
+  <div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Insignias</div><div class="badges mini">${BADGES.map(b=>`<div class="badge ${b[4]()?"on":""}" title="${esc(b[2])} · ${esc(b[3])}"><div class="b">${b[1]}</div><span></span></div>`).join("")}</div></div>
+  ${nums.length?`<div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Loot · ${nums.length}</div><div class="loot">${nums.slice(-10).reverse().map(n=>`<span>${n[0]} · ${esc(n[1]).slice(0,28)}: <b>${esc(n[2])}</b></span>`).join("")}</div></div>`:""}
+  <div><div style="font-size:12px;color:var(--muted);margin-bottom:5px">Notas rápidas</div><textarea id="quick" placeholder="Objeciones, nombres, contexto…">${esc(S.quick)}</textarea></div>
+  <div class="row"><button class="btn ghost" id="ncopy" style="font-size:13px;padding:8px 12px">Copiar nota</button><span class="toast" id="ntoast"></span></div>`;
+  $("#quick").oninput=e=>{S.quick=e.target.value;save()};
+  $("#ncopy").onclick=()=>{if(!p)return toast("Elige primero un perfil");copy(qcallText())};
+}
+function resetAll(){S={step:1,persona:null,pains:[],detail:null,view:S.view,checks:{},answers:{},why:{},qnotes:{},base:{},co:{},quick:"",ci:0,bi:0,boss:0,lock:null,skipped:{}};lastXp=0;render()}
+$("#reset").onclick=resetAll;
+let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{const m=$("#map");if(m)placeSpheres(m,$$(".sphere:not(.core)"))},150)});
+lastXp=xp();render();
+</script>
+</body>
+</html>
