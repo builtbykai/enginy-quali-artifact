@@ -355,7 +355,7 @@ textarea.sum{width:100%;min-height:340px;resize:vertical;border-radius:14px;bord
   <div class="rail">
     <div class="logo"><i>E</i>Qualification Map</div>
     <div class="miles" id="miles"></div>
-    <button class="reset" id="reset">Nueva partida</button>
+    <button class="reset" id="reset">Nueva llamada</button>
   </div>
   <div class="main">
     <section class="stage" id="stage"></section>
@@ -578,16 +578,16 @@ const BASE_CARDS=[
 ];
 const BLBL={emailQuality:"Calidad emails",bounce:"Bounce",reply:"Reply rate",phoneQuality:"Teléfonos",companiesMonth:"Empresas/mes",cycle:"Ciclo",ticket:"Ticket",clients:"Clientes"};
 const BASE=BASE_CARDS.map(c=>[c.k,c.ask.replace(/[“”]/g,""),c.ph]);
-const MILES=[["Persona","¿Con quién hablas?"],["Empresa","¿Es ICP-fit?"],["Descubrir","¿Qué pains tiene?"],["Cuantificar","¿Cuánto duele?"],["Mapear","¿Puede comprar?"],["Cerrar","Misión y nota"]];
+const MILES=[["Persona","¿Con quién hablas?"],["Empresa","¿Es ICP-fit?"],["Descubrir","¿Qué pains tiene?"],["Cuantificar","¿Cuánto duele?"],["Mapear","¿Puede comprar?"],["Cerrar","Demo y nota"]];
 const BADGES=[
- ["scanner","🛡️","ICP Scanner","4 criterios resueltos",()=>fitCrit().every(c=>c.v!==null)],
- ["hunter","🔭","Pain Hunter","3+ pains detectados",()=>S.pains.filter(i=>!PAINS[i].partner).length>=3],
- ["why","🧠","Why Seeker","un 'por qué' por pain",()=>S.pains.length>0&&S.pains.every(i=>S.why[i])],
- ["numbers","🔢","Number Cruncher","6+ métricas base",()=>Object.values(S.base).filter(Boolean).length>=6],
- ["gate","👑","Gatekeeper","decisor identificado",()=>!!S.qnotes.process],
- ["price","💶","Price Talker","precio y pago mencionados",()=>S.qnotes.priceMentioned==="yes"&&S.qnotes.paymentMentioned==="yes"],
+ ["scanner","🎯","ICP validado","4 criterios resueltos",()=>fitCrit().every(c=>c.v!==null)],
+ ["hunter","🔭","Pains detectados","3+ pains detectados",()=>S.pains.filter(i=>!PAINS[i].partner).length>=3],
+ ["why","🧠","Porqué de cada pain","un 'por qué' por pain",()=>S.pains.length>0&&S.pains.every(i=>S.why[i])],
+ ["numbers","🔢","Métricas clave","6+ métricas base",()=>Object.values(S.base).filter(Boolean).length>=6],
+ ["gate","👑","Decisor identificado","sabes quién firma",()=>!!S.qnotes.process],
+ ["price","💶","Precio en la mesa","precio y pago mencionados",()=>S.qnotes.priceMentioned==="yes"&&S.qnotes.paymentMentioned==="yes"],
  ["note","📋","Nota completa","0 campos vacíos",()=>S.persona&&S.pains.length>0&&missing().length===0],
- ["scout","🤝","Partner Scout","derivación bien hecha",()=>partnerPath()&&!!S.qnotes.partner&&!!S.qnotes.review],
+ ["scout","🤝","Derivación a Partner","derivación bien hecha",()=>partnerPath()&&!!S.qnotes.partner&&!!S.qnotes.review],
 ];
 
 
@@ -596,13 +596,13 @@ const BADGE_DESC={
  hunter:["Has encontrado dónde le duele.","Detecta 3 o más pains en Descubrir (los de ruta Partner no cuentan)."],
  why:["Entiendes por qué le duele, en sus palabras.","Apunta el “¿por qué les duele?” de cada pain en Cuantificar. Es lo que pide la sección F de la nota."],
  numbers:["Tienes las métricas para calcular el ROI.","Apunta 6 o más métricas base en Cuantificar: calidad de emails, bounce, reply, ciclo, ticket…"],
- gate:["Sabes quién decide y firma.","Abre el candado “Proceso y decisor” en Mapear con la respuesta de quién firma."],
- price:["Has puesto el precio sobre la mesa.","En el candado “Precio y pago” de Mapear, marca que has mencionado precio y modelo de pago."],
- note:["La nota de la QCALL sale sin huecos.","Responde todos los campos de la nota: empresa, ICP, stack, métricas y candados G–L."],
+ gate:["Sabes quién decide y firma.","Completa el bloque “Proceso y decisor” en Mapear con la respuesta de quién firma."],
+ price:["Has puesto el precio sobre la mesa.","En el bloque “Precio y pago” de Mapear, marca que has mencionado precio y modelo de pago."],
+ note:["La nota de la QCALL sale sin huecos.","Responde todos los campos de la nota: empresa, ICP, stack, métricas y bloques G–L."],
  scout:["Derivación a Partner bien cerrada.","En la ruta Partner, apunta el nombre del Partner y la fecha de revisión."],
 };
 function badgeHtml(b,mini){const on=b[4](),d=BADGE_DESC[b[0]]||["",b[3]];
-  return `<div class="badge ${on?"on":""}" tabindex="0" aria-label="${esc(b[2])}: ${esc(d[0])}"><div class="b">${b[1]}</div>${mini?"":`<div><span>${esc(b[2])}</span><small>${esc(b[3])}</small></div>`}<div class="tipb" role="tooltip"><b>${b[1]} ${esc(b[2])}</b><p>${esc(d[0])}</p><p class="how">${on?"✓ Conseguida":"Cómo conseguirla: "+esc(d[1])}</p></div></div>`}
+  return `<div class="badge ${on?"on":""}" tabindex="0" aria-label="${esc(b[2])}: ${esc(d[0])}"><div class="b">${b[1]}</div>${mini?"":`<div><span>${esc(b[2])}</span><small>${esc(b[3])}</small></div>`}<div class="tipb" role="tooltip"><b>${b[1]} ${esc(b[2])}</b><p>${esc(d[0])}</p><p class="how">${on?"✓ Conseguido":"Cómo conseguirlo: "+esc(d[1])}</p></div></div>`}
 
 // ---------- STATE ----------
 const LS="enginy-call-map-v4";
@@ -665,7 +665,7 @@ function canGo(k){return k===1||(k<=3&&S.persona)||(k>=4&&S.persona&&(S.pains.le
 function renderRail(){
   const p=persona(),pp=partnerPath();
   const subs=[p?p.name:"—", S.persona?fitLabel():"—", S.pains.length?`${S.pains.length} pain${S.pains.length>1?"s":""}`:"—",
-    S.pains.length?`${ansCount()}/${ansTotal()} datos`:"—", pp?"no aplica":(S.pains.length?`${QUAL.filter(lockOpen).length}/6 candados`:"—"), pp?"derivar":"nota QCALL"];
+    S.pains.length?`${ansCount()}/${ansTotal()} datos`:"—", pp?"no aplica":(S.pains.length?`${QUAL.filter(lockOpen).length}/6 bloques`:"—"), pp?"derivar":"nota QCALL"];
   $("#miles").innerHTML=`<div class="fill" style="width:${Math.max(0,(S.step-1))*(83.4/(MILES.length-1))}%"></div>`+MILES.map((m,i)=>{const k=i+1;const cls=k===S.step?"on":(k<S.step?"done":"");
     return `<button class="mile ${cls}" data-step="${k}" ${canGo(k)?"":"disabled"} title="${esc(m[1])}"><span class="dot">${k<S.step?"✓":k}</span><span class="lbl">${m[0]}</span><span class="sub">${esc(subs[i])}</span></button>`}).join("");
   $$(".mile").forEach(b=>b.onclick=()=>{S.step=+b.dataset.step;S.detail=null;render()});
@@ -689,7 +689,7 @@ function stagePersona(){
         const r=b.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,40);
         setTimeout(()=>{S.step=2;render()},560)};
       b.onmouseenter=()=>tipFor(b,`<div class="k">Rol en la venta</div><p class="role">${esc(p.role)}</p>`);b.onfocus=b.onmouseenter;b.onmouseleave=hideTip;b.onblur=hideTip})},0);
-  return `<div class="eyebrow">Nivel 1 · Persona</div><h1>¿Con quién estás hablando?</h1>
+  return `<div class="eyebrow">Paso 1 · Persona</div><h1>¿Con quién estás hablando?</h1>
   <p class="sub">Elige tu interlocutor. Cada perfil abre un mapa de pains distinto y juega un papel distinto en la compra. Pasa el ratón para ver su rol.</p>
   <div class="map" id="map"><div class="ring"></div><div class="ring r2"></div><div class="tip" id="tip"></div>
     <div class="sphere core"><div><small>Enginy</small>AI Sales OS</div></div>
@@ -721,17 +721,17 @@ function stageCompany(){
     const val=S.co[card.k]||"";
     const input=card.type==="text"?`<div class="in"><input type="text" id="cin" placeholder="${esc(card.ph)}" value="${esc(val)}" autocomplete="off"></div>`
       :`<div class="opts">${(card.type==="yn"?[["yes","Sí"],["no","No"]]:card.opts).map(o=>`<button class="opt ${o[0]==="no"?"no":""} ${val===o[0]?"on":""}" data-v="${o[0]}">${o[1]}</button>`).join("")}</div>`;
-    body=`${dots}<div class="qcardbig"><div class="k"><span>${card.core?"🛡️ Criterio ICP":card.loot?"🎒 Loot · sección "+esc(card.why.split(" ")[0]):"Pregunta"} · ${S.ci+1}/${cards.length}</span><span class="xp">+${card.core?4:card.k==="contact"||card.k==="icpPersona"?2:1}% progreso</span></div>
+    body=`${dots}<div class="qcardbig"><div class="k"><span>${card.core?"🎯 Criterio ICP":card.loot?"📋 Para la nota · sección "+esc(card.why.split(" ")[0]):"Pregunta"} · ${S.ci+1}/${cards.length}</span><span class="xp">+${card.core?4:card.k==="contact"||card.k==="icpPersona"?2:1}% progreso</span></div>
       <div class="ask">${esc(card.ask)}</div><div class="why">${esc(card.why)}</div>${input}
       <div class="nav"><button class="btn ghost" id="cback" ${S.ci===0?"disabled":""}>←</button>${card.type==="text"?`<button class="btn primary" id="cnext">Guardar <kbd>↵</kbd></button>`:""}<button class="btn ghost" id="cskip">Saltar por ahora</button>
       <span class="sp">${card.core?"":"Opcional · vuelve cuando salga en la conversación"}</span></div></div>`;
   } else {
-    body=`${dots}<div class="qcardbig" style="min-height:0"><div class="k"><span>Baraja completada</span><span class="xp">${done}/${cards.length} respondidas</span></div><div class="ask">${v==="yes"?"Empresa target confirmada.":v==="no"?"Esta empresa no es ICP-fit.":"Faltan criterios de ICP por confirmar."}</div><div class="why">${v==="pending"?"Puedes seguir a Descubrir y volver aquí cuando salgan los datos; los criterios se marcan solos.":v==="no"?"Falla: "+cs.filter(c=>c.v===false).map(c=>c.t.toLowerCase()).join(", ")+". No hay demo: deriva a Partner.":"Cumple los cuatro criterios de ICP. A por los pains."}</div></div>`;
+    body=`${dots}<div class="qcardbig" style="min-height:0"><div class="k"><span>Preguntas completadas</span><span class="xp">${done}/${cards.length} respondidas</span></div><div class="ask">${v==="yes"?"Empresa target confirmada.":v==="no"?"Esta empresa no es ICP-fit.":"Faltan criterios de ICP por confirmar."}</div><div class="why">${v==="pending"?"Puedes seguir a Descubrir y volver aquí cuando salgan los datos; los criterios se marcan solos.":v==="no"?"Falla: "+cs.filter(c=>c.v===false).map(c=>c.t.toLowerCase()).join(", ")+". No hay demo: deriva a Partner.":"Cumple los cuatro criterios de ICP. A por los pains."}</div></div>`;
   }
   const answered=cards.filter(c=>S.co[c.k]);
   const coreLeft=cards.filter(c=>c.core&&!S.co[c.k]).length;
-  return `<div class="eyebrow">Nivel 2 · Empresa <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>¿Es una empresa target?</h1>
-  <p class="sub">Cuatro criterios de ICP-fit, siempre, hables con quien hables. Una pregunta por carta; si no toca ahora, salta y vuelve. Las cartas con 🎒 son loot para la nota, no bloquean nada.</p>
+  return `<div class="eyebrow">Paso 2 · Empresa <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>¿Es una empresa target?</h1>
+  <p class="sub">Cuatro criterios de ICP-fit, siempre, hables con quien hables. Una pregunta cada vez; si no toca ahora, sáltala y vuelve después. Las marcadas con 📋 sirven para completar la nota y no bloquean nada.</p>
   ${shields}<div class="deck">${body}
   ${answered.length?`<div class="answered">${answered.map(c=>`<button data-k="${c.k}">${esc(c.ask.replace(/[“”]/g,"").slice(0,22))}… <b>${esc(String(S.co[c.k]).slice(0,18))}</b></button>`).join("")}</div>`:""}</div>
   <div class="verdict ${v}"><div><b>${v==="yes"?"ICP-fit ✓":v==="no"?"No ICP-fit":coreLeft?`${coreLeft} criterio${coreLeft>1?"s":""} sin confirmar`:"Veredicto pendiente"}</b><span>${v==="yes"?"Cumple los cuatro criterios.":v==="no"?"Cualifica brevemente y deriva a Partner.":"Puedes seguir y volver aquí."}</span></div>
@@ -754,7 +754,7 @@ function stagePains(){
     const a=$("#back1"),n=$("#next");if(a)a.onclick=()=>{S.step=2;render()};if(n)n.onclick=()=>{S.step=4;S.boss=0;render()};
   },0);
   const pp=partnerPath();
-  return `<div class="eyebrow">Nivel 3 · Descubrir <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>¿Qué pains detectas?</h1>
+  return `<div class="eyebrow">Paso 3 · Descubrir <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>¿Qué pains detectas?</h1>
   <p class="sub">Cada esfera lleva una pista. Pasa el ratón y verás las dos preguntas que lo destapan. Cuando el prospect lo confirme, haz clic: +3% de progreso y se abre cómo cuantificarlo y cómo posicionar Enginy.</p>
   <div class="toolbar"><div class="seg"><button data-v="map" class="${S.view==="map"?"on":""}">Mapa</button><button data-v="list" class="${S.view==="list"?"on":""}">Lista con preguntas</button></div><span class="empty" style="margin-left:auto">${esc(p.role)}</span></div>
   ${list?`<div class="plist">${p.pains.map(id=>{const x=PAINS[id];return `<button class="pcard ${S.pains.includes(id)?"sel":""} ${x.partner?"partner":""}" data-id="${id}"><span class="code">${id}${S.pains.includes(id)?" · DETECTADO ✓":""}</span><span class="t">${esc(x.t)}</span><span class="say">“${esc(x.say)}”</span><span class="q"><b>Pregunta</b>${esc(x.d[0])}</span></button>`}).join("")}</div>`
@@ -772,7 +772,7 @@ function drawer(id,p){
   const x=PAINS[id],angle=x.angle&&x.angle[p.id];
   return `<header><div><div class="code">${id}${x.partner?" · FUERA DE ICP":" · DETECTADO +3%"}</div><h2>${esc(x.t)}</h2><div class="say">“${esc(x.say)}”</div></div><button class="back js-close">← Volver al mapa</button></header>
   <div class="cols">
-    <div class="card"><h3>Preguntas para cuantificar</h3><ol>${x.quant.map(q=>`<li class="q">${esc(q[0])}</li>`).join("")}</ol><p style="margin-top:8px;color:var(--muted);font-size:12.5px">Las apuntarás con números en el nivel 4.</p></div>
+    <div class="card"><h3>Preguntas para cuantificar</h3><ol>${x.quant.map(q=>`<li class="q">${esc(q[0])}</li>`).join("")}</ol><p style="margin-top:8px;color:var(--muted);font-size:12.5px">Las apuntarás con números en el paso 4.</p></div>
     <div class="card impact"><h3>Impacto que debes hacer explícito</h3><p>${esc(x.impact)}</p>${angle?`<h3 style="margin-top:12px">Ángulo con ${esc(p.name)}</h3><p>${esc(angle)}</p>`:""}</div>
     <div class="card ${x.partner?"partner":""}"><h3>${x.partner?"Por qué no es ICP":"Cómo posicionar Enginy"}</h3>${x.prod.length?`<div class="chips">${x.prod.map(k=>`<span class="chip">${esc(PRODUCTS[k])}</span>`).join("")}</div>`:""}<p>${esc(x.how)}</p></div>
     <div class="card ${x.partner?"partner":""}"><h3>${x.partner?"Qué hace el SDR":"Estrategia"}</h3><p>${esc(x.strat)}</p></div>
@@ -799,10 +799,10 @@ function stageQuant(){
     function commitBase(){const c=BASE_CARDS[S.bi],i=$("#bin");if(i&&i.value.trim()){S.base[c.k]=i.value.trim();popXp(i)}S.bi=Math.min(BASE_CARDS.length,S.bi+1);render()}
     function refreshBoss(){$$(".boss").forEach(b=>{const id=b.dataset.id;if(!id)return;const a=(S.answers[id]||[]).filter(Boolean).length,t=PAINS[id].quant.length;b.querySelector(".hp i").style.width=(100*a/t)+"%";b.classList.toggle("full",a===t)})}
   },0);
-  const tabs=`<div class="bosses">${ids.map((id,i)=>{const a=(S.answers[id]||[]).filter(Boolean).length,t=PAINS[id].quant.length;return `<button class="boss ${i===bossIdx?"on":""} ${a===t?"full":""}" data-i="${i}" data-id="${id}">${id} <span class="hp"><i style="width:${100*a/t}%"></i></span></button>`}).join("")}<button class="boss ${isLoot?"on":""}" data-i="${ids.length}">🎒 Métricas base <span class="hp"><i style="width:${100*Object.values(S.base).filter(Boolean).length/BASE_CARDS.length}%"></i></span></button></div>`;
+  const tabs=`<div class="bosses">${ids.map((id,i)=>{const a=(S.answers[id]||[]).filter(Boolean).length,t=PAINS[id].quant.length;return `<button class="boss ${i===bossIdx?"on":""} ${a===t?"full":""}" data-i="${i}" data-id="${id}">${id} <span class="hp"><i style="width:${100*a/t}%"></i></span></button>`}).join("")}<button class="boss ${isLoot?"on":""}" data-i="${ids.length}">📊 Métricas base <span class="hp"><i style="width:${100*Object.values(S.base).filter(Boolean).length/BASE_CARDS.length}%"></i></span></button></div>`;
   let body;
   if(!isLoot){const id=ids[bossIdx],x=PAINS[id],a=S.answers[id]||[];
-    body=`<div class="challenge"><div class="k" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">${id} · boss ${bossIdx+1}/${ids.length} · +1% por dato · +2% por el porqué</div><h2>${esc(x.t)}</h2><p class="goal">“${esc(x.say)}”</p>
+    body=`<div class="challenge"><div class="k" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">${id} · pain ${bossIdx+1}/${ids.length} · +1% por dato · +2% por el porqué</div><h2>${esc(x.t)}</h2><p class="goal">“${esc(x.say)}”</p>
       <div class="bossbody"><div>${x.quant.map((q,k)=>`<div class="qrow"><div class="q">${esc(q[0])}</div><input class="ans ${a[k]?"hit":""}" id="a-${id}-${k}" data-a="${id}:${k}" placeholder="${esc(q[1])}" value="${esc(a[k]||"")}" autocomplete="off"></div>`).join("")}
         <div class="qrow why-row"><div class="q"><b>¿Por qué les duele?</b> Pregúntalo y apúntalo en sus palabras, sin asumir.</div><input class="why" id="why-${id}" data-w="${id}" placeholder="ej. “porque el AE pierde dos horas al día en reuniones que no van a ningún sitio”" value="${esc(S.why[id]||"")}" autocomplete="off"></div></div>
       <div class="side"><div class="frame"><b>Frase de impacto</b>${esc(x.frame)}</div><h4>${x.partner?"Por qué no es ICP":"Posicionar Enginy"}</h4>${x.prod.length?`<div class="chips">${x.prod.map(k=>`<span class="chip">${esc(PRODUCTS[k].split(" (")[0])}</span>`).join("")}</div>`:""}<p>${esc(x.how)}</p></div></div>
@@ -810,14 +810,14 @@ function stageQuant(){
   } else {
     const c=BASE_CARDS[Math.min(S.bi,BASE_CARDS.length)],done=Object.values(S.base).filter(Boolean).length;
     const dots=`<div class="dots">${BASE_CARDS.map((b,i)=>`<i data-i="${i}" class="${i===S.bi?"on":S.base[b.k]?"done":""}" title="${esc(b.ask)}"></i>`).join("")}</div>`;
-    body=c?`<div class="deck">${dots}<div class="qcardbig"><div class="k"><span>🎒 Loot · ${S.bi+1}/${BASE_CARDS.length}</span><span class="xp">+1% progreso</span></div><div class="ask">${esc(c.ask)}</div><div class="why">${esc(c.why)}</div>
+    body=c?`<div class="deck">${dots}<div class="qcardbig"><div class="k"><span>📊 Métrica ${S.bi+1}/${BASE_CARDS.length}</span><span class="xp">+1% progreso</span></div><div class="ask">${esc(c.ask)}</div><div class="why">${esc(c.why)}</div>
       <div class="in"><input type="text" id="bin" placeholder="${esc(c.ph)}" value="${esc(S.base[c.k]||"")}" autocomplete="off"></div>
       <div class="nav"><button class="btn ghost" id="bback" ${S.bi===0?"disabled":""}>←</button><button class="btn primary" id="bnext">Guardar <kbd>↵</kbd></button><button class="btn ghost" id="bskip">Saltar</button><span class="sp">Si ya salió con un pain, cópialo</span></div></div>
       <div class="answered">${BASE_CARDS.filter(b=>S.base[b.k]).map(b=>`<button data-k="${b.k}">${esc(BLBL[b.k])} <b>${esc(S.base[b.k])}</b></button>`).join("")}</div></div>`
-      :`<div class="deck"><div class="qcardbig" style="min-height:0"><div class="k"><span>Loot completado</span><span class="xp">${done}/${BASE_CARDS.length}</span></div><div class="ask">${done>=6?"Number Cruncher desbloqueado.":"Puedes volver a por las que falten."}</div></div><div class="answered">${BASE_CARDS.filter(b=>S.base[b.k]).map(b=>`<button data-k="${b.k}">${esc(BLBL[b.k])} <b>${esc(S.base[b.k])}</b></button>`).join("")}</div></div>`;
+      :`<div class="deck"><div class="qcardbig" style="min-height:0"><div class="k"><span>Métricas completadas</span><span class="xp">${done}/${BASE_CARDS.length}</span></div><div class="ask">${done>=6?"Métricas clave capturadas.":"Puedes volver a por las que falten."}</div></div><div class="answered">${BASE_CARDS.filter(b=>S.base[b.k]).map(b=>`<button data-k="${b.k}">${esc(BLBL[b.k])} <b>${esc(S.base[b.k])}</b></button>`).join("")}</div></div>`;
   }
-  return `<div class="eyebrow">Nivel 4 · Cuantificar <span class="tag">${esc(p.name)}</span></div><h1>${pp?"Confirma el estado antes de derivar":"Pon números a cada pain"}</h1>
-  <p class="sub">${pp?"Dos o tres datos bastan para no equivocarte de ruta y para que el Partner reciba contexto útil.":"Un pain cada vez. La barra de cada boss se llena con cada número; con uno bueno por pain ya vale. Los números alimentan el script de cierre y la nota."}</p>
+  return `<div class="eyebrow">Paso 4 · Cuantificar <span class="tag">${esc(p.name)}</span></div><h1>${pp?"Confirma el estado antes de derivar":"Pon números a cada pain"}</h1>
+  <p class="sub">${pp?"Dos o tres datos bastan para no equivocarte de ruta y para que el Partner reciba contexto útil.":"Un pain cada vez. La barra de cada pain se llena con cada número; con uno bueno por pain ya vale. Los números alimentan el script de cierre y la nota."}</p>
   ${tabs}${body}
   <div class="foot"><span class="count">${ansCount()}/${ansTotal()} datos de pains · ${Object.values(S.base).filter(Boolean).length}/${BASE_CARDS.length} métricas base</span><button class="btn ghost" id="back">← Descubrir</button><button class="btn ${pp?"warn":"primary"}" id="next">${pp?"Derivar a Partner →":"Mapear →"}</button></div>`;
 }
@@ -834,7 +834,7 @@ function stageQual(){
   },0);
   if(partnerPath()){
     const ids=S.pains.filter(i=>PAINS[i].partner),why=fitVerdict()==="no"?fitCrit().filter(c=>c.v===false).map(c=>c.t.toLowerCase()).join(", "):ids.join(" y ");
-    return `<div class="eyebrow">Nivel 5 · Ruta Partner</div><h1>No es ICP: ciérralo bien y derívalo</h1>
+    return `<div class="eyebrow">Paso 5 · Ruta Partner</div><h1>No es ICP: ciérralo bien y derívalo</h1>
     <p class="sub">Motivo: ${esc(why)}. No hay demo ni cualificación de presupuesto. El objetivo es dejar buena impresión, pasar el lead a un Partner y fijar la fecha de revisión.</p>
     <div class="challenge"><h2>Checklist de derivación</h2><p class="goal">Marca lo que hagas.</p><div class="qchips">
       ${[["p0","“¿Hay hoy alguien dedicado a prospectar, aunque sea a tiempo parcial?”"],["p1","“¿Pensáis contratar comercial en los próximos 6 meses?”"],["p2","Decir: “Enginy aporta valor cuando ya hay un equipo prospectando cada día. Hoy os haría perder dinero.”"],["p3","Decir: “Os presento a [Partner], que ayuda a montar el proceso y la primera contratación.”"],["p4","Email de intro al Partner con el prospect en copia y 3 líneas de contexto"],["p5","HubSpot: estado “Partner referral”, motivo y Partner"],["p6","Alerta de intent: oferta de SDR / AE / Head of Sales publicada"]].map(q=>`<button class="qchip ${S.checks[q[0]]?"on":""}" data-k="${q[0]}"><span class="box">${S.checks[q[0]]?"✓":""}</span><span>${esc(q[1])}</span></button>`).join("")}</div>
@@ -844,19 +844,19 @@ function stageQual(){
   }
   const extras={};S.pains.forEach(id=>{if(EXTRA[id])Object.entries(EXTRA[id]).forEach(([n,q])=>{(extras[n]=extras[n]||[]).push([id,q])})});
   const opened=QUAL.filter(lockOpen).length;
-  const locks=`<div class="locks">${QUAL.map(c=>`<button class="lock ${lockOpen(c)?"open":""} ${S.lock===c.k?"on":""}" data-k="${c.k}"><div class="ico">${lockOpen(c)?"🔓":c.ico}</div><b>${esc(c.t)}</b><small>${c.snip} · ${c.q.filter((q,k)=>S.checks[c.n+k]).length}/${c.q.length+(extras[c.n]||[]).length} preguntas</small></button>`).join("")}</div>`;
+  const locks=`<div class="locks">${QUAL.map(c=>`<button class="lock ${lockOpen(c)?"open":""} ${S.lock===c.k?"on":""}" data-k="${c.k}"><div class="ico">${lockOpen(c)?"✅":c.ico}</div><b>${esc(c.t)}</b><small>${c.snip} · ${c.q.filter((q,k)=>S.checks[c.n+k]).length}/${c.q.length+(extras[c.n]||[]).length} preguntas</small></button>`).join("")}</div>`;
   let ch="";
   if(S.lock){const c=QUAL.find(x=>x.k===S.lock);const ex=extras[c.n]||[];const qs=c.q.map((q,k)=>[c.n+k,q,false]).concat(ex.map(([id,q])=>["x"+id+c.n,q,true]));
-    ch=`<div class="challenge"><div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Candado ${c.n} · sección ${c.snip} · +3% por la respuesta</div><h2>${c.ico} ${esc(c.t)}</h2><p class="goal">${esc(c.goal)}</p>
+    ch=`<div class="challenge"><div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Bloque ${c.n} · sección ${c.snip} · +3% por la respuesta</div><h2>${c.ico} ${esc(c.t)}</h2><p class="goal">${esc(c.goal)}</p>
       <div class="qchips">${qs.map(q=>`<button class="qchip ${S.checks[q[0]]?"on":""} ${q[2]?"extra":""}" data-k="${q[0]}"><span class="box">${S.checks[q[0]]?"✓":""}</span><span>${q[2]?'<span class="plus">+</span>':""}${esc(q[1])}</span></button>`).join("")}</div>
       ${(c.toggles||[]).map(t=>`<div class="row" style="margin-bottom:10px"><span style="font-size:13.5px;color:var(--muted)">${esc(t[1])}</span><div class="seg"><button class="tg ${S.qnotes[t[0]]==="yes"?"on":""}" data-t="${t[0]}" data-v="yes">Sí</button><button class="tg ${S.qnotes[t[0]]==="no"?"on":""}" data-t="${t[0]}" data-v="no">No</button></div></div>`).join("")}
-      <div class="ans"><input class="qn" id="qn-${c.k}" data-n="${c.k}" placeholder="${esc(c.note)}…" value="${esc(S.qnotes[c.k]||"")}" autocomplete="off"><button class="btn primary" id="closelock">${lockOpen(c)?"Actualizar y seguir":"Abrir candado →"}</button></div>
+      <div class="ans"><input class="qn" id="qn-${c.k}" data-n="${c.k}" placeholder="${esc(c.note)}…" value="${esc(S.qnotes[c.k]||"")}" autocomplete="off"><button class="btn primary" id="closelock">${lockOpen(c)?"Actualizar y seguir":"Guardar y seguir →"}</button></div>
       ${c.k==="process"&&p.champion?`<p class="flag">Con ${esc(p.name)} el objetivo de la call es la intro: "¿Me presentas a ${esc(p.dm)} para enseñarle esto con vuestros números?"</p>`:c.k==="process"?`<p class="flag">Decisor esperado con ${esc(p.name)}: ${esc(p.dm)}. Que esté en la demo.</p>`:""}</div>`;
-  } else ch=`<div class="empty" style="text-align:center;padding:10px">Elige un candado para abrirlo. ${opened===6?"Los seis abiertos: quali mapeada.":""}</div>`;
-  return `<div class="eyebrow">Nivel 5 · Mapear <span class="tag">${esc(p.name)}</span> <span class="tag">${opened}/6 candados</span></div><h1>¿Puede comprar? Abre los seis candados</h1>
-  <p class="sub">Cada candado es una sección de la nota (G a L). Dentro: las preguntas para decirlas tal cual, y un hueco para la respuesta corta. Las preguntas con + vienen de los pains detectados.</p>
+  } else ch=`<div class="empty" style="text-align:center;padding:10px">Elige un bloque para completarlo. ${opened===6?"Los seis completos: cualificación mapeada.":""}</div>`;
+  return `<div class="eyebrow">Paso 5 · Mapear <span class="tag">${esc(p.name)}</span> <span class="tag">${opened}/6 bloques</span></div><h1>¿Puede comprar? Completa los seis bloques</h1>
+  <p class="sub">Cada bloque es una sección de la nota (G a L). Dentro: las preguntas para decirlas tal cual, y un hueco para la respuesta corta. Las preguntas con + vienen de los pains detectados.</p>
   ${locks}${ch}
-  <div class="foot"><span class="count">${qualDone()}/${qualTotal()} preguntas hechas</span><button class="btn ghost" id="back">← Cuantificar</button><button class="btn primary" id="next">Cerrar misión →</button></div>`;
+  <div class="foot"><span class="count">${qualDone()}/${qualTotal()} preguntas hechas</span><button class="btn ghost" id="back">← Cuantificar</button><button class="btn primary" id="next">Cerrar llamada →</button></div>`;
 }
 
 // ---- Level 6: Close (mission complete + note) ----
@@ -874,7 +874,7 @@ function stageClose(){
     $$(".jump").forEach(b=>b.onclick=()=>{S.step=+b.dataset.s;render()});
     const arc=$("#arc");if(arc)requestAnimationFrame(()=>arc.style.strokeDashoffset=C*(1-pct/100));
     if(!S._celebrated){S._celebrated=1;save();burst(innerWidth/2,200,120)}},0);
-  return `<div class="eyebrow">Nivel 6 · ${pp?"Derivar":"Cerrar"} <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>${pp?"Misión: derivar a Partner":x>=100?"Quali completada":"Fin de la llamada"}</h1>
+  return `<div class="eyebrow">Paso 6 · ${pp?"Derivar":"Cerrar"} <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>${pp?"Cerrar: derivar a Partner":x>=100?"Quali completada":"Fin de la llamada"}</h1>
   <div class="mission"><div class="ringwrap"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="86" fill="none" stroke="var(--line)" stroke-width="12"/><circle id="arc" cx="100" cy="100" r="86" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" style="transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1)"/><defs><linearGradient id="g"><stop offset="0" stop-color="#1FB85B"/><stop offset="1" stop-color="#FFD166"/></linearGradient></defs></svg><div class="num"><b>${x}%</b><small>progreso</small></div></div>
     <div><span class="rank">★ ${r[1]}</span><p style="margin:10px 0 12px;color:var(--muted)">${nr?`Progreso ${x}%: te faltan ${nr[0]-x} punto${nr[0]-x===1?"":"s"} para “${nr[1]}”. `:"Progreso 100%. "}${pp?"Derivación bien hecha: deja la cuenta lista para revisar.":"Pide la demo con el decisor usando el script; luego copia la nota al deal."}</p>
     <div class="badges">${BADGES.map(b=>badgeHtml(b,false)).join("")}</div></div></div>
@@ -887,7 +887,7 @@ function stageClose(){
   ${miss.length?`<div class="missbox"><b>${miss.length} campos de la nota sin respuesta.</b> Si aún estás en la call, pregúntalos ahora: ${miss.slice(0,8).map(esc).join(" · ")}${miss.length>8?" · …":""} <span class="row" style="margin-top:8px"><button class="btn ghost jump" data-s="2">Ir a Empresa</button><button class="btn ghost jump" data-s="4">Ir a Cuantificar</button><button class="btn ghost jump" data-s="5">Ir a Mapear</button></span></div>`:`<div class="missbox ok"><b>Nota completa.</b> Todos los campos tienen respuesta.</div>`}
   <div class="eyebrow" style="margin-top:14px">Nota de la QCALL · pegar en el deal de HubSpot</div>
   <textarea class="sum" id="sum"></textarea>
-  <div class="foot"><span class="toast" id="toast"></span><button class="btn ghost" id="back">← Mapear</button><button class="btn ghost" id="again">Nueva partida</button><button class="btn primary" id="copy">Copiar nota</button></div>`;
+  <div class="foot"><span class="toast" id="toast"></span><button class="btn ghost" id="back">← Mapear</button><button class="btn ghost" id="again">Nueva llamada</button><button class="btn primary" id="copy">Copiar nota</button></div>`;
 }
 const YN=v=>v==="yes"?"Yes":v==="no"?"No":"—";
 const V=v=>(v||"").trim()||"—";
@@ -940,8 +940,8 @@ function renderSheet(){
   <dt>Pains</dt><dd>${S.pains.length?S.pains.map(i=>`<span class="pill ${PAINS[i].partner?"w":""}" title="${esc(PAINS[i].t)}">${i}</span>`).join(""):'<span class="empty">ninguno todavía</span>'}</dd>
   <dt>Ruta</dt><dd>${!S.pains.length&&!pp?'<span class="empty">—</span>':(pp?'<span class="pill w">Partner referral</span>':'<span class="pill ok">Demo con decisor</span>')}</dd>
   <dt>Decisor</dt><dd style="font-size:13px">${p?esc(S.qnotes.process||p.dm):'<span class="empty">—</span>'}</dd></dl>
-  <div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Insignias · ${BADGES.filter(b=>b[4]()).length}/${BADGES.length} <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(pasa el ratón para ver qué son)</span></div><div class="badges mini">${BADGES.map(b=>badgeHtml(b,true)).join("")}</div></div>
-  ${nums.length?`<div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Loot · ${nums.length}</div><div class="loot">${nums.slice(-10).reverse().map(n=>`<span>${n[0]} · ${esc(n[1]).slice(0,28)}: <b>${esc(n[2])}</b></span>`).join("")}</div></div>`:""}
+  <div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Logros · ${BADGES.filter(b=>b[4]()).length}/${BADGES.length} <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(pasa el ratón para ver cada uno)</span></div><div class="badges mini">${BADGES.map(b=>badgeHtml(b,true)).join("")}</div></div>
+  ${nums.length?`<div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Datos capturados · ${nums.length}</div><div class="loot">${nums.slice(-10).reverse().map(n=>`<span>${n[0]} · ${esc(n[1]).slice(0,28)}: <b>${esc(n[2])}</b></span>`).join("")}</div></div>`:""}
   <div><div style="font-size:12px;color:var(--muted);margin-bottom:5px">Notas rápidas</div><textarea id="quick" placeholder="Objeciones, nombres, contexto…">${esc(S.quick)}</textarea></div>
   <div class="row"><button class="btn ghost" id="ncopy" style="font-size:13px;padding:8px 12px">Copiar nota</button><span class="toast" id="ntoast"></span></div>`;
   $("#quick").oninput=e=>{S.quick=e.target.value;save()};

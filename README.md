@@ -6,15 +6,15 @@ Es una única página estática (`index.html`, con CSS y JS integrados): sin dep
 
 ## Cómo funciona
 
-La llamada se recorre en 6 niveles. Un panel lateral muestra el **progreso de la quali** (0–100 %), las insignias y los datos capturados.
+La llamada se recorre en 6 pasos. Un panel lateral muestra el **progreso de la quali** (0–100 %), los logros y los datos capturados.
 
-| Nivel | Qué hace el SDR | Sección de la nota QCALL |
+| Paso | Qué hace el SDR | Sección de la nota QCALL |
 | --- | --- | --- |
 | 1 · Persona | Elige con quién habla (Founder, CEO, VP Sales, Head of SDR, Marketing, SDR, AE, RevOps) | Who are we meeting with |
 | 2 · Empresa | Responde los 4 criterios de ICP-fit, una pregunta por carta | Outbound, IA, A, B, C, D |
 | 3 · Descubrir | Detecta pains en el mapa de esferas, con preguntas detector y posicionamiento de Enginy | F |
 | 4 · Cuantificar | Apunta los números de cada pain, el porqué y las métricas base | C, E, F |
-| 5 · Mapear | Abre 6 candados: impacto, competidores, timing, criterios, proceso y decisor, precio | G–L |
+| 5 · Mapear | Completa 6 bloques: impacto, competidores, timing, criterios, proceso y decisor, precio | G–L |
 | 6 · Cerrar | Script de cierre con sus números y nota QCALL completa para copiar | Nota completa |
 
 ### Criterios de ICP-fit
@@ -55,9 +55,9 @@ Todo el contenido está en el `<script>` de `index.html`:
 - `PAINS`: cada pain con pista, preguntas detector, preguntas de cuantificación, frase de impacto, productos de Enginy, estrategia y ángulo por persona
 - `CO_CARDS`: preguntas de empresa e ICP-fit
 - `BASE_CARDS`: métricas base (calidad de datos, volumen, ratios)
-- `QUAL`: los 6 candados de Mapear (secciones G–L)
+- `QUAL`: los 6 bloques de Mapear (secciones G–L)
 - `qcallText()`: plantilla de la nota QCALL
 
 ## Datos y privacidad
 
-El progreso de cada llamada se guarda solo en el `localStorage` del navegador del SDR. No se envía a ningún servidor, no se sincroniza entre dispositivos y se borra con **Nueva partida**.
+El progreso de cada llamada se guarda solo en el `localStorage` del navegador del SDR. No se envía a ningún servidor, no se sincroniza entre dispositivos y se borra con **Nueva llamada**.
