@@ -284,7 +284,7 @@ kbd{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:5px;b
 .ringwrap .num small{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .rank{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:linear-gradient(150deg,#FFD166,#E09A1A);color:#2B1A00;font-weight:800;font-size:13px;letter-spacing:.02em;box-shadow:0 8px 20px rgba(255,209,102,.3)}
 .badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
-.badge{display:flex;gap:9px;align-items:center;padding:9px 10px;border-radius:14px;border:1px solid var(--line);background:var(--panel2);font-size:12px;line-height:1.2;opacity:.45;filter:grayscale(1)}
+.badge{display:flex;gap:9px;align-items:center;padding:9px 10px;border-radius:14px;border:1px solid var(--line);background:var(--panel2);font-size:12px;line-height:1.2}
 .badge .b{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--panel-solid);font-size:16px;flex:none;box-shadow:inset 0 -5px 8px rgba(0,0,0,.25)}
 .badge.on{opacity:1;filter:none;border-color:var(--gold);background:rgba(255,209,102,.1)}
 .badge.on .b{background:linear-gradient(150deg,#FFD166,#E09A1A)}
@@ -330,6 +330,21 @@ textarea.sum{width:100%;min-height:340px;resize:vertical;border-radius:14px;bord
 /* XP pop */
 .pop{position:fixed;z-index:60;font-family:var(--mono);font-weight:600;font-size:15px;color:var(--gold);text-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:none;animation:rise 1.1s ease-out forwards}
 @keyframes rise{0%{opacity:0;transform:translate(-50%,0) scale(.8)}15%{opacity:1;transform:translate(-50%,-10px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-70px) scale(1)}}
+
+.badge{position:relative;opacity:1;filter:none;cursor:help}
+.badge:not(.on)>:not(.tipb){opacity:.45;filter:grayscale(1)}
+.badge:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tipb{position:absolute;z-index:20;bottom:calc(100% + 10px);left:50%;transform:translate(-50%,4px);width:240px;max-width:min(240px,80vw);background:var(--panel-solid);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);font-size:12.5px;line-height:1.4;text-align:left;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s}
+.tipb b{display:block;font-size:13px;margin-bottom:4px}
+.tipb p{margin:0 0 4px;color:var(--fg)}
+.tipb p.how{margin:0;color:var(--muted);font-size:12px}
+.badge.on .tipb p.how{color:var(--accent);font-family:var(--mono)}
+.badge:hover .tipb,.badge:focus .tipb{opacity:1;transform:translate(-50%,0)}
+.badges .badge:nth-child(4n+1) .tipb{left:0;transform:translate(0,4px)}
+.badges .badge:nth-child(4n+1):hover .tipb,.badges .badge:nth-child(4n+1):focus .tipb{transform:none}
+.badges .badge:nth-child(4n) .tipb{left:auto;right:0;transform:translate(0,4px)}
+.badges .badge:nth-child(4n):hover .tipb,.badges .badge:nth-child(4n):focus .tipb{transform:none}
+.mission{overflow:visible}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -574,6 +589,20 @@ const BADGES=[
  ["note","📋","Nota completa","0 campos vacíos",()=>S.persona&&S.pains.length>0&&missing().length===0],
  ["scout","🤝","Partner Scout","derivación bien hecha",()=>partnerPath()&&!!S.qnotes.partner&&!!S.qnotes.review],
 ];
+
+
+const BADGE_DESC={
+ scanner:["Sabes si la empresa es target.","Responde los 4 criterios de ICP-fit en Empresa: reps, empleados, ICP digital y outbound con proceso."],
+ hunter:["Has encontrado dónde le duele.","Detecta 3 o más pains en Descubrir (los de ruta Partner no cuentan)."],
+ why:["Entiendes por qué le duele, en sus palabras.","Apunta el “¿por qué les duele?” de cada pain en Cuantificar. Es lo que pide la sección F de la nota."],
+ numbers:["Tienes las métricas para calcular el ROI.","Apunta 6 o más métricas base en Cuantificar: calidad de emails, bounce, reply, ciclo, ticket…"],
+ gate:["Sabes quién decide y firma.","Abre el candado “Proceso y decisor” en Mapear con la respuesta de quién firma."],
+ price:["Has puesto el precio sobre la mesa.","En el candado “Precio y pago” de Mapear, marca que has mencionado precio y modelo de pago."],
+ note:["La nota de la QCALL sale sin huecos.","Responde todos los campos de la nota: empresa, ICP, stack, métricas y candados G–L."],
+ scout:["Derivación a Partner bien cerrada.","En la ruta Partner, apunta el nombre del Partner y la fecha de revisión."],
+};
+function badgeHtml(b,mini){const on=b[4](),d=BADGE_DESC[b[0]]||["",b[3]];
+  return `<div class="badge ${on?"on":""}" tabindex="0" aria-label="${esc(b[2])}: ${esc(d[0])}"><div class="b">${b[1]}</div>${mini?"":`<div><span>${esc(b[2])}</span><small>${esc(b[3])}</small></div>`}<div class="tipb" role="tooltip"><b>${b[1]} ${esc(b[2])}</b><p>${esc(d[0])}</p><p class="how">${on?"✓ Conseguida":"Cómo conseguirla: "+esc(d[1])}</p></div></div>`}
 
 // ---------- STATE ----------
 const LS="enginy-call-map-v4";
@@ -848,7 +877,7 @@ function stageClose(){
   return `<div class="eyebrow">Nivel 6 · ${pp?"Derivar":"Cerrar"} <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>${pp?"Misión: derivar a Partner":x>=100?"Quali completada":"Fin de la llamada"}</h1>
   <div class="mission"><div class="ringwrap"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="86" fill="none" stroke="var(--line)" stroke-width="12"/><circle id="arc" cx="100" cy="100" r="86" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" style="transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1)"/><defs><linearGradient id="g"><stop offset="0" stop-color="#1FB85B"/><stop offset="1" stop-color="#FFD166"/></linearGradient></defs></svg><div class="num"><b>${x}%</b><small>progreso</small></div></div>
     <div><span class="rank">★ ${r[1]}</span><p style="margin:10px 0 12px;color:var(--muted)">${nr?`Progreso ${x}%: te faltan ${nr[0]-x} punto${nr[0]-x===1?"":"s"} para “${nr[1]}”. `:"Progreso 100%. "}${pp?"Derivación bien hecha: deja la cuenta lista para revisar.":"Pide la demo con el decisor usando el script; luego copia la nota al deal."}</p>
-    <div class="badges">${BADGES.map(b=>`<div class="badge ${b[4]()?"on":""}"><div class="b">${b[1]}</div><div><span>${esc(b[2])}</span><small>${esc(b[3])}</small></div></div>`).join("")}</div></div></div>
+    <div class="badges">${BADGES.map(b=>badgeHtml(b,false)).join("")}</div></div></div>
   <div class="script"><h3>Script de cierre</h3>
   ${pp?`<p>“Os lo digo con transparencia: Enginy funciona cuando ya hay un equipo prospectando cada día. Hoy os haría perder dinero. Lo que sí os ayuda es montar el proceso y la primera contratación, y para eso os presento a <mark class="${S.qnotes.partner?"":"miss"}">${esc(S.qnotes.partner||"[Partner]")}</mark>. Cuando tengáis a esa persona, volvemos a hablar.”</p>`
   :`${main.map(i=>`<p>“${fill(PAINS[i].frame,i)}”</p>`).join("")}
@@ -911,7 +940,7 @@ function renderSheet(){
   <dt>Pains</dt><dd>${S.pains.length?S.pains.map(i=>`<span class="pill ${PAINS[i].partner?"w":""}" title="${esc(PAINS[i].t)}">${i}</span>`).join(""):'<span class="empty">ninguno todavía</span>'}</dd>
   <dt>Ruta</dt><dd>${!S.pains.length&&!pp?'<span class="empty">—</span>':(pp?'<span class="pill w">Partner referral</span>':'<span class="pill ok">Demo con decisor</span>')}</dd>
   <dt>Decisor</dt><dd style="font-size:13px">${p?esc(S.qnotes.process||p.dm):'<span class="empty">—</span>'}</dd></dl>
-  <div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Insignias</div><div class="badges mini">${BADGES.map(b=>`<div class="badge ${b[4]()?"on":""}" title="${esc(b[2])} · ${esc(b[3])}"><div class="b">${b[1]}</div><span></span></div>`).join("")}</div></div>
+  <div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Insignias · ${BADGES.filter(b=>b[4]()).length}/${BADGES.length} <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(pasa el ratón para ver qué son)</span></div><div class="badges mini">${BADGES.map(b=>badgeHtml(b,true)).join("")}</div></div>
   ${nums.length?`<div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Loot · ${nums.length}</div><div class="loot">${nums.slice(-10).reverse().map(n=>`<span>${n[0]} · ${esc(n[1]).slice(0,28)}: <b>${esc(n[2])}</b></span>`).join("")}</div></div>`:""}
   <div><div style="font-size:12px;color:var(--muted);margin-bottom:5px">Notas rápidas</div><textarea id="quick" placeholder="Objeciones, nombres, contexto…">${esc(S.quick)}</textarea></div>
   <div class="row"><button class="btn ghost" id="ncopy" style="font-size:13px;padding:8px 12px">Copiar nota</button><span class="toast" id="ntoast"></span></div>`;
