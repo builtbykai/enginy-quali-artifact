@@ -6,7 +6,7 @@ Es una única página estática (`index.html`, con CSS y JS integrados): sin dep
 
 ## Cómo funciona
 
-La llamada se recorre en 6 pasos. Un panel lateral muestra el **progreso de la quali** (0–100 %), los logros y los datos capturados.
+La llamada se recorre en 6 pasos. Un panel lateral muestra el **progreso de la quali** (0–100 %), las insignias y los datos capturados.
 
 | Paso | Qué hace el SDR | Sección de la nota QCALL |
 | --- | --- | --- |

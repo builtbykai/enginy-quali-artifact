@@ -580,14 +580,14 @@ const BLBL={emailQuality:"Calidad emails",bounce:"Bounce",reply:"Reply rate",pho
 const BASE=BASE_CARDS.map(c=>[c.k,c.ask.replace(/[“”]/g,""),c.ph]);
 const MILES=[["Persona","¿Con quién hablas?"],["Empresa","¿Es ICP-fit?"],["Descubrir","¿Qué pains tiene?"],["Cuantificar","¿Cuánto duele?"],["Mapear","¿Puede comprar?"],["Cerrar","Demo y nota"]];
 const BADGES=[
- ["scanner","🎯","ICP validado","4 criterios resueltos",()=>fitCrit().every(c=>c.v!==null)],
- ["hunter","🔭","Pains detectados","3+ pains detectados",()=>S.pains.filter(i=>!PAINS[i].partner).length>=3],
- ["why","🧠","Porqué de cada pain","un 'por qué' por pain",()=>S.pains.length>0&&S.pains.every(i=>S.why[i])],
- ["numbers","🔢","Métricas clave","6+ métricas base",()=>Object.values(S.base).filter(Boolean).length>=6],
- ["gate","👑","Decisor identificado","sabes quién firma",()=>!!S.qnotes.process],
- ["price","💶","Precio en la mesa","precio y pago mencionados",()=>S.qnotes.priceMentioned==="yes"&&S.qnotes.paymentMentioned==="yes"],
+ ["scanner","🛡️","ICP Scanner","4 criterios resueltos",()=>fitCrit().every(c=>c.v!==null)],
+ ["hunter","🔭","Pain Hunter","3+ pains detectados",()=>S.pains.filter(i=>!PAINS[i].partner).length>=3],
+ ["why","🧠","Why Seeker","un 'por qué' por pain",()=>S.pains.length>0&&S.pains.every(i=>S.why[i])],
+ ["numbers","🔢","Number Cruncher","6+ métricas base",()=>Object.values(S.base).filter(Boolean).length>=6],
+ ["gate","👑","Gatekeeper","decisor identificado",()=>!!S.qnotes.process],
+ ["price","💶","Price Talker","precio y pago mencionados",()=>S.qnotes.priceMentioned==="yes"&&S.qnotes.paymentMentioned==="yes"],
  ["note","📋","Nota completa","0 campos vacíos",()=>S.persona&&S.pains.length>0&&missing().length===0],
- ["scout","🤝","Derivación a Partner","derivación bien hecha",()=>partnerPath()&&!!S.qnotes.partner&&!!S.qnotes.review],
+ ["scout","🤝","Partner Scout","derivación bien hecha",()=>partnerPath()&&!!S.qnotes.partner&&!!S.qnotes.review],
 ];
 
 
@@ -602,7 +602,7 @@ const BADGE_DESC={
  scout:["Derivación a Partner bien cerrada.","En la ruta Partner, apunta el nombre del Partner y la fecha de revisión."],
 };
 function badgeHtml(b,mini){const on=b[4](),d=BADGE_DESC[b[0]]||["",b[3]];
-  return `<div class="badge ${on?"on":""}" tabindex="0" aria-label="${esc(b[2])}: ${esc(d[0])}"><div class="b">${b[1]}</div>${mini?"":`<div><span>${esc(b[2])}</span><small>${esc(b[3])}</small></div>`}<div class="tipb" role="tooltip"><b>${b[1]} ${esc(b[2])}</b><p>${esc(d[0])}</p><p class="how">${on?"✓ Conseguido":"Cómo conseguirlo: "+esc(d[1])}</p></div></div>`}
+  return `<div class="badge ${on?"on":""}" tabindex="0" aria-label="${esc(b[2])}: ${esc(d[0])}"><div class="b">${b[1]}</div>${mini?"":`<div><span>${esc(b[2])}</span><small>${esc(b[3])}</small></div>`}<div class="tipb" role="tooltip"><b>${b[1]} ${esc(b[2])}</b><p>${esc(d[0])}</p><p class="how">${on?"✓ Conseguida":"Cómo conseguirla: "+esc(d[1])}</p></div></div>`}
 
 // ---------- STATE ----------
 const LS="enginy-call-map-v4";
@@ -721,7 +721,7 @@ function stageCompany(){
     const val=S.co[card.k]||"";
     const input=card.type==="text"?`<div class="in"><input type="text" id="cin" placeholder="${esc(card.ph)}" value="${esc(val)}" autocomplete="off"></div>`
       :`<div class="opts">${(card.type==="yn"?[["yes","Sí"],["no","No"]]:card.opts).map(o=>`<button class="opt ${o[0]==="no"?"no":""} ${val===o[0]?"on":""}" data-v="${o[0]}">${o[1]}</button>`).join("")}</div>`;
-    body=`${dots}<div class="qcardbig"><div class="k"><span>${card.core?"🎯 Criterio ICP":card.loot?"📋 Para la nota · sección "+esc(card.why.split(" ")[0]):"Pregunta"} · ${S.ci+1}/${cards.length}</span><span class="xp">+${card.core?4:card.k==="contact"||card.k==="icpPersona"?2:1}% progreso</span></div>
+    body=`${dots}<div class="qcardbig"><div class="k"><span>${card.core?"🎯 Criterio ICP":card.loot?"📋 Pregunta extra · sección "+esc(card.why.split(" ")[0]):"Pregunta"} · ${S.ci+1}/${cards.length}</span><span class="xp">+${card.core?4:card.k==="contact"||card.k==="icpPersona"?2:1}% progreso</span></div>
       <div class="ask">${esc(card.ask)}</div><div class="why">${esc(card.why)}</div>${input}
       <div class="nav"><button class="btn ghost" id="cback" ${S.ci===0?"disabled":""}>←</button>${card.type==="text"?`<button class="btn primary" id="cnext">Guardar <kbd>↵</kbd></button>`:""}<button class="btn ghost" id="cskip">Saltar por ahora</button>
       <span class="sp">${card.core?"":"Opcional · vuelve cuando salga en la conversación"}</span></div></div>`;
@@ -731,7 +731,7 @@ function stageCompany(){
   const answered=cards.filter(c=>S.co[c.k]);
   const coreLeft=cards.filter(c=>c.core&&!S.co[c.k]).length;
   return `<div class="eyebrow">Paso 2 · Empresa <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>¿Es una empresa target?</h1>
-  <p class="sub">Cuatro criterios de ICP-fit, siempre, hables con quien hables. Una pregunta cada vez; si no toca ahora, sáltala y vuelve después. Las marcadas con 📋 sirven para completar la nota y no bloquean nada.</p>
+  <p class="sub">Cuatro criterios de ICP-fit, siempre, hables con quien hables. Una pregunta cada vez; si no toca ahora, sáltala y vuelve después. Las marcadas con 📋 son preguntas extra: completan la nota y no bloquean nada.</p>
   ${shields}<div class="deck">${body}
   ${answered.length?`<div class="answered">${answered.map(c=>`<button data-k="${c.k}">${esc(c.ask.replace(/[“”]/g,"").slice(0,22))}… <b>${esc(String(S.co[c.k]).slice(0,18))}</b></button>`).join("")}</div>`:""}</div>
   <div class="verdict ${v}"><div><b>${v==="yes"?"ICP-fit ✓":v==="no"?"No ICP-fit":coreLeft?`${coreLeft} criterio${coreLeft>1?"s":""} sin confirmar`:"Veredicto pendiente"}</b><span>${v==="yes"?"Cumple los cuatro criterios.":v==="no"?"Cualifica brevemente y deriva a Partner.":"Puedes seguir y volver aquí."}</span></div>
@@ -814,7 +814,7 @@ function stageQuant(){
       <div class="in"><input type="text" id="bin" placeholder="${esc(c.ph)}" value="${esc(S.base[c.k]||"")}" autocomplete="off"></div>
       <div class="nav"><button class="btn ghost" id="bback" ${S.bi===0?"disabled":""}>←</button><button class="btn primary" id="bnext">Guardar <kbd>↵</kbd></button><button class="btn ghost" id="bskip">Saltar</button><span class="sp">Si ya salió con un pain, cópialo</span></div></div>
       <div class="answered">${BASE_CARDS.filter(b=>S.base[b.k]).map(b=>`<button data-k="${b.k}">${esc(BLBL[b.k])} <b>${esc(S.base[b.k])}</b></button>`).join("")}</div></div>`
-      :`<div class="deck"><div class="qcardbig" style="min-height:0"><div class="k"><span>Métricas completadas</span><span class="xp">${done}/${BASE_CARDS.length}</span></div><div class="ask">${done>=6?"Métricas clave capturadas.":"Puedes volver a por las que falten."}</div></div><div class="answered">${BASE_CARDS.filter(b=>S.base[b.k]).map(b=>`<button data-k="${b.k}">${esc(BLBL[b.k])} <b>${esc(S.base[b.k])}</b></button>`).join("")}</div></div>`;
+      :`<div class="deck"><div class="qcardbig" style="min-height:0"><div class="k"><span>Métricas completadas</span><span class="xp">${done}/${BASE_CARDS.length}</span></div><div class="ask">${done>=6?"Number Cruncher desbloqueado.":"Puedes volver a por las que falten."}</div></div><div class="answered">${BASE_CARDS.filter(b=>S.base[b.k]).map(b=>`<button data-k="${b.k}">${esc(BLBL[b.k])} <b>${esc(S.base[b.k])}</b></button>`).join("")}</div></div>`;
   }
   return `<div class="eyebrow">Paso 4 · Cuantificar <span class="tag">${esc(p.name)}</span></div><h1>${pp?"Confirma el estado antes de derivar":"Pon números a cada pain"}</h1>
   <p class="sub">${pp?"Dos o tres datos bastan para no equivocarte de ruta y para que el Partner reciba contexto útil.":"Un pain cada vez. La barra de cada pain se llena con cada número; con uno bueno por pain ya vale. Los números alimentan el script de cierre y la nota."}</p>
@@ -940,7 +940,7 @@ function renderSheet(){
   <dt>Pains</dt><dd>${S.pains.length?S.pains.map(i=>`<span class="pill ${PAINS[i].partner?"w":""}" title="${esc(PAINS[i].t)}">${i}</span>`).join(""):'<span class="empty">ninguno todavía</span>'}</dd>
   <dt>Ruta</dt><dd>${!S.pains.length&&!pp?'<span class="empty">—</span>':(pp?'<span class="pill w">Partner referral</span>':'<span class="pill ok">Demo con decisor</span>')}</dd>
   <dt>Decisor</dt><dd style="font-size:13px">${p?esc(S.qnotes.process||p.dm):'<span class="empty">—</span>'}</dd></dl>
-  <div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Logros · ${BADGES.filter(b=>b[4]()).length}/${BADGES.length} <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(pasa el ratón para ver cada uno)</span></div><div class="badges mini">${BADGES.map(b=>badgeHtml(b,true)).join("")}</div></div>
+  <div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Insignias · ${BADGES.filter(b=>b[4]()).length}/${BADGES.length} <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(pasa el ratón para ver qué son)</span></div><div class="badges mini">${BADGES.map(b=>badgeHtml(b,true)).join("")}</div></div>
   ${nums.length?`<div><div style="font-size:11px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Datos capturados · ${nums.length}</div><div class="loot">${nums.slice(-10).reverse().map(n=>`<span>${n[0]} · ${esc(n[1]).slice(0,28)}: <b>${esc(n[2])}</b></span>`).join("")}</div></div>`:""}
   <div><div style="font-size:12px;color:var(--muted);margin-bottom:5px">Notas rápidas</div><textarea id="quick" placeholder="Objeciones, nombres, contexto…">${esc(S.quick)}</textarea></div>
   <div class="row"><button class="btn ghost" id="ncopy" style="font-size:13px;padding:8px 12px">Copiar nota</button><span class="toast" id="ntoast"></span></div>`;
