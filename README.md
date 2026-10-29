@@ -6,16 +6,25 @@ Es una página estática (`index.html`, con CSS y JS integrados) más una funci�
 
 ## Cómo funciona
 
-La llamada se recorre en 6 pasos. Un panel lateral muestra el **progreso de la quali** (0–100 %), las insignias y los datos capturados.
+La llamada se organiza en 5 secciones por tema, no por orden. El SDR puede saltar a cualquiera en cualquier momento: con las pestañas, con las teclas 1–5 o con el buscador **"¿De qué está hablando?"** (tecla `/` o ⌘K), que lleva directo a la pregunta del tema que saca el prospect ("CRM", "bounce", "competencia", "precio"…).
 
-| Paso | Qué hace el SDR | Sección de la nota QCALL |
+| Sección | Qué se apunta | Nota QCALL |
 | --- | --- | --- |
-| 1 · Persona | Elige con quién habla (Founder, CEO, VP Sales, Head of SDR, Marketing, SDR, AE, RevOps) | Who are we meeting with |
-| 2 · Empresa | Responde los 4 criterios de ICP-fit, una pregunta por carta | Outbound, IA, A, B, C, D |
-| 3 · Descubrir | Detecta pains en el mapa de esferas, con preguntas detector y posicionamiento de Enginy | F |
-| 4 · Cuantificar | Apunta los números de cada pain, el porqué y las métricas base | C, E, F |
-| 5 · Mapear | Completa 6 bloques: impacto, competidores, timing, criterios, proceso y decisor, precio | G–L |
-| 6 · Cerrar | Script de cierre con sus números y nota QCALL completa para copiar | Nota completa |
+| 1 · Cuenta | LinkedIn (autocompletado con Enginy), persona, criterios de ICP, tamaño de la empresa, situación y su ICP | Who, outbound, A, B |
+| 2 · Proceso y stack | Proceso de listas, herramientas, calidad de datos, día a día y canales, volumen y ratios | C, D, E |
+| 3 · Pains | Mapa de pains según persona y tamaño; al hacer clic se cuantifica y se apunta el porqué ahí mismo | F |
+| 4 · Decisión | Seis bloques a la vista: impacto, competidores, timing, criterios, proceso y decisor, precio; con cómo compra cada tamaño | G–L |
+| 5 · Cierre | Progreso, insignias, script de cierre, campos pendientes (clic para ir) y nota QCALL | Nota completa |
+
+Cada pregunta es una tarjeta: clic para apuntar, Enter guarda y abre la siguiente sin responder. Las de Sí/No se marcan con un clic.
+
+### Segmentos por tamaño
+
+El tamaño se calcula con el número de comerciales (o con los empleados si no se sabe): **Startup** 4–10, **Mid-market** 11–50, **Enterprise** más de 50 (o más de 1.000 empleados). Se puede ajustar a mano en Cuenta. Cambia tres cosas:
+
+- Qué pains aparecen y en qué orden (relevancia alta, media o baja por segmento), con pains propios de cada tamaño (F1–F4).
+- El ángulo de cada pain para ese segmento.
+- En Decisión: quién firma, cuánto dura la compra, qué la bloquea y preguntas extra por segmento.
 
 ### Criterios de ICP-fit
 
@@ -84,9 +93,9 @@ Todo el contenido está en el `<script>` de `index.html`:
 
 - `PERSONAS`: perfiles, su rol en la venta, decisor esperado y pains que ven
 - `PAINS`: cada pain con pista, preguntas detector, preguntas de cuantificación, frase de impacto, productos de Enginy, estrategia y ángulo por persona
-- `CO_CARDS`: preguntas de empresa e ICP-fit
-- `BASE_CARDS`: métricas base (calidad de datos, volumen, ratios)
-- `QUAL`: los 6 bloques de Mapear (secciones G–L)
+- `SEGREL`: relevancia y ángulo de cada pain por tamaño; `SEGBUY` y `SEGQ`: cómo compra cada tamaño y sus preguntas extra
+- `FIELDS`: todas las preguntas de Cuenta y Proceso y stack, con su sección, grupo y palabras clave para el buscador
+- `QUAL`: los 6 bloques de Decisión (secciones G–L)
 - `qcallText()`: plantilla de la nota QCALL
 
 ## Datos y privacidad
