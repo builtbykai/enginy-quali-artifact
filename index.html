@@ -345,6 +345,36 @@ textarea.sum{width:100%;min-height:340px;resize:vertical;border-radius:14px;bord
 .badges .badge:nth-child(4n) .tipb{left:auto;right:0;transform:translate(0,4px)}
 .badges .badge:nth-child(4n):hover .tipb,.badges .badge:nth-child(4n):focus .tipb{transform:none}
 .mission{overflow:visible}
+
+/* Enginy autocompletado */
+.lookup{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px}
+.lk-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.lk-row .li-ico{flex:none;width:34px;height:34px;border-radius:9px;background:#0A66C2;color:#fff;display:grid;place-items:center;font:700 15px var(--sans)}
+.lk-row input{flex:1;min-width:200px;border:1px solid var(--line);background:var(--glass);border-radius:12px;padding:11px 13px;font:14px var(--sans)}
+.lk-row input::placeholder{color:var(--muted);opacity:.75}
+.lk-status{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;line-height:1.4}
+.lk-status.ok{color:var(--accent)}
+.lk-status.err{color:var(--danger)}
+.lk-status.warn{color:var(--warn)}
+.lk-status .btn{padding:5px 10px;font-size:12px}
+.spin{flex:none;width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.pcardx{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;background:linear-gradient(160deg,var(--panel-solid),var(--bg2));border:1px solid var(--accent);border-radius:18px;padding:14px 16px;margin:0 0 14px;animation:deal .35s cubic-bezier(.2,.8,.2,1)}
+@media (max-width:640px){.pcardx{grid-template-columns:auto 1fr}.pcardx .cta{grid-column:1/-1}}
+.pcardx .av{width:52px;height:52px;border-radius:50%;background:var(--brand);display:grid;place-items:center;font-weight:700;color:#EDF6F1;overflow:hidden;flex:none}
+.pcardx .av img{width:100%;height:100%;object-fit:cover}
+.pcardx .who{min-width:0}
+.pcardx .who b{display:block;font-size:16px;letter-spacing:-.01em}
+.pcardx .who span{display:block;color:var(--muted);font-size:13px}
+.pcardx .facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pcardx .facts i{font-style:normal;font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:7px;background:var(--accent-soft);color:var(--fg)}
+.pcardx .facts a{font-family:var(--mono);font-size:11px;color:var(--accent);text-decoration:none;padding:3px 2px}
+.pcardx .cta{display:flex;flex-direction:column;gap:6px;align-items:flex-end;text-align:right}
+.pcardx .cta small{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.sphere.persona.suggest{box-shadow:inset 0 -14px 26px rgba(0,0,0,.28),inset 0 2px 2px rgba(255,255,255,.25),0 0 0 4px var(--accent),0 0 40px rgba(54,228,113,.55)}
+.sphere .sug{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);padding:2px 7px;border-radius:6px;white-space:nowrap}
+.autotag{font-family:var(--mono);font-size:11.5px;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:6px 10px;align-self:flex-start}
+.etoast{position:fixed;z-index:70;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel-solid);border:1px solid var(--accent);color:var(--fg);border-radius:14px;padding:11px 16px;box-shadow:var(--shadow);font-size:13.5px;animation:deal .3s ease-out;max-width:calc(100vw - 32px)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -606,13 +636,13 @@ function badgeHtml(b,mini){const on=b[4](),d=BADGE_DESC[b[0]]||["",b[3]];
 
 // ---------- STATE ----------
 const LS="enginy-call-map-v4";
-let S={step:1,persona:null,pains:[],detail:null,view:"map",checks:{},answers:{},why:{},qnotes:{},base:{},co:{},quick:"",ci:0,bi:0,boss:0,lock:null,skipped:{}};
+let S={step:1,persona:null,pains:[],detail:null,view:"map",checks:{},answers:{},why:{},qnotes:{},base:{},co:{},quick:"",ci:0,bi:0,boss:0,lock:null,enrich:null,auto:{},skipped:{}};
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s&&s.step)S={...S,...s,detail:null}}catch(e){}
 function save(){try{const{detail,...rest}=S;localStorage.setItem(LS,JSON.stringify(rest))}catch(e){}}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const persona=()=>PERSONAS.find(p=>p.id===S.persona);
-const num=v=>{const n=parseFloat(String(v||"").replace(/[^\d.,]/g,"").replace(",","."));return isNaN(n)?null:n};
+const num=v=>{const m=String(v||"").match(/\d[\d.,]*/);if(!m)return null;const n=parseInt(m[0].replace(/[.,](?=\d{3}\b)/g,"").replace(/[.,].*$/,""),10);return isNaN(n)?null:n};
 function fitCrit(){const c=S.co;const reps=num(c.reps),emp=num(c.employees);
   return [
    {k:"reps",ico:"🧑‍💼",t:"+3 en ventas",v:reps===null?null:reps>3,detail:c.reps?`${c.reps}`:"¿cuántos reps?"},
@@ -680,9 +710,100 @@ function tipFor(el,html){const tip=$("#tip"),map=$("#map");if(!tip||!map)return;
   const cx=b.left-m.left+b.width/2;let left=Math.max(8,Math.min(m.width-288,cx-140));let top=b.bottom-m.top+10;if(top+140>m.height)top=b.top-m.top-150;tip.style.left=left+"px";tip.style.top=top+"px";tip.classList.add("show")}
 function hideTip(){const t=$("#tip");if(t)t.classList.remove("show")}
 
+// ---- Enginy: autocompletar desde LinkedIn ----
+const CODE_KEY="eqm-access-code";
+const getCode=()=>{try{return localStorage.getItem(CODE_KEY)||""}catch(e){return ""}};
+const setCode=v=>{try{v?localStorage.setItem(CODE_KEY,v):localStorage.removeItem(CODE_KEY)}catch(e){}};
+function guessPersona(title,emp){const t=" "+String(title||"").toLowerCase()+" ";
+  if(!t.trim())return null;
+  const has=re=>re.test(t);
+  if(has(/\bceo\b|chief executive|managing director|director[a]? general|consejer[oa] delegad[oa]|country manager/))return(has(/founder|fundador/)&&emp!=null&&emp<20)?"founder":"ceo";
+  if(has(/co-?founder|founder|fundador|fundadora|owner|propietari/))return emp!=null&&emp>=50?"ceo":"founder";
+  if(has(/\b(sdr|bdr)\b|sales development rep|business development rep/)&&!has(/head|manager|lead|director|vp|jef[ae]|responsable|gerente/))return"sdr";
+  if(has(/(head|manager|lead|director|jef[ae]|responsable)[^,|@]{0,25}(sdr|bdr|sales development|desarrollo de negocio)|\b(sdr|bdr) (manager|lead)|sales development manager|sales manager|sales (team )?lead|team lead|jef[ae] de equipo/))return"sdrlead";
+  if(has(/revops|revenue operations|sales ?ops|sales operations|gtm engineer|go[- ]to[- ]market engineer|crm manager|operaciones comerciales/))return"revops";
+  if(has(/\b(cro|cso|cco)\b|chief (revenue|sales|commercial)|\bvp\b[^,|@]{0,12}(sales|ventas)|vice ?president[^,|@]{0,15}sales|head of (sales|revenue)|sales director|commercial director|director[a]? (comercial|de ventas)|(gerente|responsable|jef[ae]) (comercial|de ventas)/))return"vpsales";
+  if(has(/marketing|growth|demand gen|\bcmo\b/))return"marketing";
+  if(has(/account executive|\bae\b|account manager|key account|sales executive|sales rep|business development manager|ejecutiv[oa] (de cuentas|comercial)|comercial\b/))return"ae";
+  return null}
+function firstOpenCard(){const cs=visibleCards();const i=cs.findIndex(c=>!S.co[c.k]&&!S.skipped[c.k]);return i<0?cs.length:i}
+function applyEnrich(d){if(!d)return 0;S.auto=S.auto||{};const P=d.person||{},C=d.company||null;let n=0;
+  const set=(k,v,src)=>{if(v==null)return;v=String(v).trim();if(!v)return;if(S.co[k]&&!S.auto[k])return;S.co[k]=v;S.auto[k]=src||"Enginy";delete S.skipped[k];n++};
+  if(P.fullName)set("contact",[P.fullName,P.jobTitle].filter(Boolean).join(", ")+(C&&C.name?` · ${C.name}`:""),"perfil de LinkedIn");
+  if(C){
+    if(C.employees!=null)set("employees",C.employees,"LinkedIn de la empresa");
+    else if(C.employeeRange){const m=String(C.employeeRange).replace(/(\d)[.,](\d{3})/g,"$1$2").match(/\d+/g)||[];const lo=+m[0],hi=+(m[1]||m[0]);if(m.length&&(lo>20||hi<=20))set("employees",lo>20?lo:hi,"rango de LinkedIn: "+C.employeeRange)}
+    const hc=C.salesHeadcount;if(hc&&(hc.sales+hc.bizDev)>0)set("reps",hc.sales+hc.bizDev,`estimado LinkedIn: ${hc.sales} Sales + ${hc.bizDev} Business Development`);
+    set("location",[C.city,C.country].filter(Boolean).join(", "),"LinkedIn de la empresa");
+    const desc=C.description?C.description.replace(/\s+/g," "):"";
+    set("business",[C.industry,desc&&(desc.length>160?desc.slice(0,160)+"…":desc)].filter(Boolean).join(" — "),"LinkedIn de la empresa");
+  }
+  S.enrich.suggested=guessPersona(P.jobTitle||P.headline,C?C.employees:null);
+  S.ci=firstOpenCard();return n}
+let pollT=null,pollFails=0;
+const POLL_MAX_MS=10*60*1000;
+async function enrichApi(method,qs,body){
+  const r=await fetch("/api/enrich"+(qs||""),{method,headers:{"content-type":"application/json","x-access-code":getCode()},body:body?JSON.stringify(body):undefined});
+  let j=null;try{j=await r.json()}catch(e){}
+  if(!j||!j.status){j=[404,405,501].includes(r.status)||!j?{status:"error",code:"offline",message:"El autocompletado solo funciona en la versión online de la app (enginy-quali-artifact.vercel.app)."}:{status:"error",message:"Error "+r.status+" del servidor."}}
+  j._code=r.status;return j}
+async function startEnrich(url){
+  url=String(url||"").trim();const cur=S.enrich;
+  if(cur&&cur.status==="loading")return;
+  if(cur&&cur.status==="scraping"&&cur.url===url)return;
+  if(!/linkedin\.com\/in\//i.test(url)){S.enrich={status:"error",url,msg:"Pega una URL de perfil de LinkedIn (linkedin.com/in/…)."};return refreshEnrich()}
+  clearTimeout(pollT);pollFails=0;const mine={status:"loading",url};S.enrich=mine;refreshEnrich();
+  let j;try{j=await enrichApi("POST","",{linkedinUrl:url})}catch(e){j={status:"error",code:"offline",message:"No hay conexión con el servidor. El autocompletado solo funciona en la versión online."}}
+  if(S.enrich!==mine)return; // reset or a newer lookup happened meanwhile
+  handleEnrich(j)}
+function handleEnrich(j){const e=S.enrich||{};
+  if(j._code===401){const had=!!getCode();setCode("");S.enrich={...e,status:"needcode",msg:had?j.message:""};return refreshEnrich()}
+  if(j.status==="found"||j.status==="partial"){S.enrich={...e,status:j.status==="found"?"done":"partial",data:j.data,source:j.source,msg:j.message,job:null};
+    const n=applyEnrich(j.data);refreshEnrich(true);etoast(n?`✨ Enginy ha rellenado ${n} dato${n===1?"":"s"} de persona y empresa`:"Enginy no ha encontrado datos nuevos");
+    const r=$("#li-go")||$(".lookup");if(r){const b=r.getBoundingClientRect();burst(b.left+b.width/2,b.top+b.height/2,40)}return}
+  if(j.status==="scraping"){const was=e.status==="scraping";S.enrich={...e,status:"scraping",phase:j.phase,job:j.job,since:e.since||Date.now()};
+    if(was)updateLookupStatus();else refreshEnrich();schedulePoll();return}
+  S.enrich={...e,status:"error",msg:j.message||"No se pudo consultar Enginy."};refreshEnrich()}
+function schedulePoll(){clearTimeout(pollT);pollT=setTimeout(async()=>{const e=S.enrich;if(!e||e.status!=="scraping"||!e.job)return;
+  if(Date.now()-(e.since||0)>POLL_MAX_MS){S.enrich={...e,status:"error",msg:"Enginy está tardando demasiado. Completa los datos a mano o reintenta más tarde."};return refreshEnrich()}
+  let j=null;try{j=await enrichApi("GET","?job="+encodeURIComponent(e.job))}catch(err){}
+  if(S.enrich!==e)return;
+  if(!j||(j._code>=500&&j._code!==503)||j._code===429){if(++pollFails>=5){S.enrich={...e,status:"error",msg:"Se ha perdido la conexión con Enginy. Reintenta en un momento."};return refreshEnrich()}schedulePoll();return}
+  pollFails=0;handleEnrich(j)},4000)}
+function updateLookupStatus(){save();renderSheet();const cur=$(".lookup .lk-status");if(!cur)return;const tmp=document.createElement("div");tmp.innerHTML=lookupHtml();const nu=tmp.querySelector(".lk-status");if(nu)cur.replaceWith(nu)}
+function refreshEnrich(dataArrived){save();renderRail();renderSheet();
+  const ae=document.activeElement,st=$("#stage");const typing=ae&&st&&st.contains(ae)&&/INPUT|TEXTAREA/.test(ae.tagName)&&ae.id!=="li-url"&&ae.id!=="li-code";
+  if(S.step===1)renderStage();else if(S.step===2&&!typing&&dataArrived)renderStage()}
+function etoast(m){const t=document.createElement("div");t.className="etoast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),4200)}
+function lookupHtml(){const e=S.enrich||{status:"idle"};const st=e.status;
+  const mins=e.since?Math.max(0,Math.round((Date.now()-e.since)/60000)):0;
+  const status={idle:`<div class="lk-status">Opcional: con la URL, Enginy rellena los datos de la persona y la empresa. También puedes elegir el perfil a mano en el mapa.</div>`,
+    loading:`<div class="lk-status"><span class="spin"></span>Buscando en Enginy…</div>`,
+    scraping:`<div class="lk-status warn"><span class="spin"></span>No estaba completo en Enginy: extrayendo ${e.phase==="company"?"los datos de la empresa":"el perfil y la empresa"} de LinkedIn${mins?` (${mins} min)`:""}. Puede tardar unos minutos: sigue con la llamada y los datos aparecerán solos.</div>`,
+    done:`<div class="lk-status ok">✓ Datos cargados ${e.source==="scrape"?"de LinkedIn vía Enginy":"de Enginy"}. Revisa en Empresa lo que viene marcado con ✨.</div>`,
+    partial:`<div class="lk-status warn">${esc(e.msg||"Datos incompletos.")} <button class="btn ghost" id="li-retry">Reintentar</button></div>`,
+    error:`<div class="lk-status err">${esc(e.msg||"Error.")} ${e.url?'<button class="btn ghost" id="li-retry">Reintentar</button>':""}</div>`,
+    needcode:`<div class="lk-row"><input id="li-code" type="password" placeholder="Código de acceso del equipo" autocomplete="off"><button class="btn" id="li-code-go">Guardar código</button></div><div class="lk-status ${e.msg?"err":""}">${esc(e.msg||"Introduce una vez el código de acceso del equipo (te lo da tu manager). Se guarda en este navegador.")}</div>`}[st]||"";
+  const busy=st==="loading"||st==="scraping";
+  return `<div class="lookup"><div class="lk-row"><span class="li-ico">in</span><input id="li-url" type="url" inputmode="url" placeholder="Pega la URL del LinkedIn de tu interlocutor" value="${esc(e.url||"")}" autocomplete="off"><button class="btn primary" id="li-go" ${busy?"disabled":""}>${busy?"Buscando…":"Autocompletar con Enginy"}</button></div>${status}</div>${profileHtml()}`}
+const okUrl=u=>typeof u==="string"&&/^https:\/\//i.test(u)?u:"";
+function profileHtml(){const e=S.enrich;if(!e||!e.data)return"";const P=e.data.person||{},C=e.data.company||{},sp=e.suggested&&PERSONAS.find(x=>x.id===e.suggested);
+  const ini=(P.fullName||"?").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  const hc=C.salesHeadcount;const facts=[C.employees!=null?`${C.employees} empleados`:C.employeeRange?`${C.employeeRange} empleados`:"",hc&&(hc.sales+hc.bizDev)?`~${hc.sales+hc.bizDev} en ventas`:"",C.industry||"",[C.city,C.country].filter(Boolean).join(", "),C.hiringOnLinkedIn?`Contratando${C.openJobs?` · ${C.openJobs} ofertas`:""}`:"",C.revenueRange?`Facturación ${C.revenueRange}`:""].filter(Boolean);
+  return `<div class="pcardx"><div class="av">${okUrl(P.imageUrl)?`<img src="${esc(okUrl(P.imageUrl))}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:""}${esc(ini)}</div>
+    <div class="who"><b>${esc(P.fullName||"Sin nombre")}</b><span>${esc([P.jobTitle||P.headline,C.name].filter(Boolean).join(" · "))}</span>
+    <div class="facts">${facts.map(f=>`<i>${esc(f)}</i>`).join("")}${okUrl(P.appUrl)?`<a href="${esc(okUrl(P.appUrl))}" target="_blank" rel="noopener">Ver en Enginy ↗</a>`:""}${okUrl(P.linkedInUrl)?`<a href="${esc(okUrl(P.linkedInUrl))}" target="_blank" rel="noopener">LinkedIn ↗</a>`:""}</div></div>
+    <div class="cta">${sp?`<small>Perfil sugerido</small><button class="btn primary" id="li-use">Continuar como ${esc(sp.name)} →</button>`:`<small>Elige el perfil en el mapa</small>`}</div></div>`}
+function bindLookup(){const u=$("#li-url"),g=$("#li-go");if(!u||!g)return;
+  g.onclick=()=>startEnrich(u.value);u.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();startEnrich(u.value)}};
+  u.onpaste=()=>setTimeout(()=>{if(/linkedin\.com\/in\//i.test(u.value)&&!(S.enrich&&(S.enrich.status==="loading"||S.enrich.status==="scraping")))startEnrich(u.value)},0);
+  const c=$("#li-code"),cg=$("#li-code-go");if(c&&cg){const go=()=>{if(!c.value.trim())return;setCode(c.value.trim());startEnrich((S.enrich&&S.enrich.url)||u.value)};cg.onclick=go;c.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go()}}}
+  const r=$("#li-retry");if(r)r.onclick=()=>startEnrich(S.enrich.url||u.value);
+  const use=$("#li-use");if(use)use.onclick=()=>{const b=$(`.sphere.persona[data-id="${S.enrich.suggested}"]`);if(b)b.click()}}
+
 // ---- Level 1: Persona ----
 function stagePersona(){
-  setTimeout(()=>{const map=$("#map");if(!map)return;const bs=$$(".sphere.persona");placeSpheres(map,bs);
+  setTimeout(()=>{bindLookup();const map=$("#map");if(!map)return;const bs=$$(".sphere.persona");placeSpheres(map,bs);
     bs.forEach(b=>{const p=PERSONAS.find(x=>x.id===b.dataset.id);
       b.onclick=()=>{if(S.persona!==p.id){S.pains=[];S.answers={};S.why={};S.boss=0;S.detail=null}S.persona=p.id;hideTip();
         bs.forEach(o=>{if(o!==b)o.classList.add("out")});b.classList.remove("float");b.style.setProperty("--x","0px");b.style.setProperty("--y","0px");b.style.setProperty("--d","172px");
@@ -691,9 +812,10 @@ function stagePersona(){
       b.onmouseenter=()=>tipFor(b,`<div class="k">Rol en la venta</div><p class="role">${esc(p.role)}</p>`);b.onfocus=b.onmouseenter;b.onmouseleave=hideTip;b.onblur=hideTip})},0);
   return `<div class="eyebrow">Paso 1 · Persona</div><h1>¿Con quién estás hablando?</h1>
   <p class="sub">Elige tu interlocutor. Cada perfil abre un mapa de pains distinto y juega un papel distinto en la compra. Pasa el ratón para ver su rol.</p>
+  ${lookupHtml()}
   <div class="map" id="map"><div class="ring"></div><div class="ring r2"></div><div class="tip" id="tip"></div>
     <div class="sphere core"><div><small>Enginy</small>AI Sales OS</div></div>
-    ${PERSONAS.map(p=>`<button class="sphere persona float" data-id="${p.id}"><div><span class="t">${esc(p.name)}</span><em>${esc(p.sub)}</em></div></button>`).join("")}
+    ${PERSONAS.map(p=>`<button class="sphere persona float ${S.enrich&&S.enrich.suggested===p.id?"suggest":""}" data-id="${p.id}">${S.enrich&&S.enrich.suggested===p.id?'<span class="sug">Sugerido</span>':""}<div><span class="t">${esc(p.name)}</span><em>${esc(p.sub)}</em></div></button>`).join("")}
   </div>`;
 }
 
@@ -706,12 +828,12 @@ function stageCompany(){
   setTimeout(()=>{
     $$(".dots i").forEach(d=>d.onclick=()=>{S.ci=+d.dataset.i;render()});
     const inp=$("#cin");if(inp){inp.focus();inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();commitCard()}}}
-    $$(".opt").forEach(o=>o.onclick=()=>{S.co[card.k]=o.dataset.v;popXp(o);advance()});
+    $$(".opt").forEach(o=>o.onclick=()=>{S.co[card.k]=o.dataset.v;if(S.auto)delete S.auto[card.k];popXp(o);advance()});
     const n=$("#cnext"),s=$("#cskip"),bk=$("#cback");if(n)n.onclick=commitCard;if(s)s.onclick=()=>{S.skipped[card.k]=1;advance()};if(bk)bk.onclick=()=>{S.ci=Math.max(0,S.ci-1);render()};
     $$(".answered button").forEach(b=>b.onclick=()=>{S.ci=cards.findIndex(c=>c.k===b.dataset.k);render()});
     const go=$("#next"),d=$("#derive"),b1=$("#back");if(go)go.onclick=()=>{S.step=3;render()};if(d)d.onclick=()=>{S.step=6;render()};if(b1)b1.onclick=()=>{S.step=1;render()};
     const jl=$("#jumploot");if(jl)jl.onclick=()=>{S.ci=cards.findIndex(c=>c.loot);render()};
-    function commitCard(){const i=$("#cin");if(i){if(!i.value.trim()){delete S.co[card.k];S.skipped[card.k]=1;lastXp=xp()}else{S.co[card.k]=i.value.trim();delete S.skipped[card.k];popXp(i)}}advance()}
+    function commitCard(){const i=$("#cin");if(i){if(!i.value.trim()){delete S.co[card.k];S.skipped[card.k]=1;lastXp=xp()}else{S.co[card.k]=i.value.trim();delete S.skipped[card.k];if(S.auto)delete S.auto[card.k];popXp(i)}}advance()}
     function advance(){S.ci=Math.min(cards.length,S.ci+1);render()}
   },0);
   const shields=`<div class="shields">${cs.map(c=>`<div class="shield ${c.v===true?"ok":c.v===false?"ko":""}"><div class="ico">${c.ico}</div><b>${esc(c.t)}</b><small>${esc(c.detail)}</small></div>`).join("")}</div>`;
@@ -722,7 +844,7 @@ function stageCompany(){
     const input=card.type==="text"?`<div class="in"><input type="text" id="cin" placeholder="${esc(card.ph)}" value="${esc(val)}" autocomplete="off"></div>`
       :`<div class="opts">${(card.type==="yn"?[["yes","Sí"],["no","No"]]:card.opts).map(o=>`<button class="opt ${o[0]==="no"?"no":""} ${val===o[0]?"on":""}" data-v="${o[0]}">${o[1]}</button>`).join("")}</div>`;
     body=`${dots}<div class="qcardbig"><div class="k"><span>${card.core?"🎯 Criterio ICP":card.loot?"📋 Pregunta extra · sección "+esc(card.why.split(" ")[0]):"Pregunta"} · ${S.ci+1}/${cards.length}</span><span class="xp">+${card.core?4:card.k==="contact"||card.k==="icpPersona"?2:1}% progreso</span></div>
-      <div class="ask">${esc(card.ask)}</div><div class="why">${esc(card.why)}</div>${input}
+      <div class="ask">${esc(card.ask)}</div><div class="why">${esc(card.why)}</div>${S.auto&&S.auto[card.k]?`<div class="autotag">✨ Dato de Enginy (${esc(S.auto[card.k])}). Confírmalo con el prospect y guarda.</div>`:""}${input}
       <div class="nav"><button class="btn ghost" id="cback" ${S.ci===0?"disabled":""}>←</button>${card.type==="text"?`<button class="btn primary" id="cnext">Guardar <kbd>↵</kbd></button>`:""}<button class="btn ghost" id="cskip">Saltar por ahora</button>
       <span class="sp">${card.core?"":"Opcional · vuelve cuando salga en la conversación"}</span></div></div>`;
   } else {
@@ -733,7 +855,7 @@ function stageCompany(){
   return `<div class="eyebrow">Paso 2 · Empresa <span class="tag">${esc(p.name)}</span> <span class="tag">${esc(fitLabel())}</span></div><h1>¿Es una empresa target?</h1>
   <p class="sub">Cuatro criterios de ICP-fit, siempre, hables con quien hables. Una pregunta cada vez; si no toca ahora, sáltala y vuelve después. Las marcadas con 📋 son preguntas extra: completan la nota y no bloquean nada.</p>
   ${shields}<div class="deck">${body}
-  ${answered.length?`<div class="answered">${answered.map(c=>`<button data-k="${c.k}">${esc(c.ask.replace(/[“”]/g,"").slice(0,22))}… <b>${esc(String(S.co[c.k]).slice(0,18))}</b></button>`).join("")}</div>`:""}</div>
+  ${answered.length?`<div class="answered">${answered.map(c=>`<button data-k="${c.k}">${S.auto&&S.auto[c.k]?"✨ ":""}${esc(c.ask.replace(/[“”]/g,"").slice(0,22))}… <b>${esc(String(S.co[c.k]).slice(0,18))}</b></button>`).join("")}</div>`:""}</div>
   <div class="verdict ${v}"><div><b>${v==="yes"?"ICP-fit ✓":v==="no"?"No ICP-fit":coreLeft?`${coreLeft} criterio${coreLeft>1?"s":""} sin confirmar`:"Veredicto pendiente"}</b><span>${v==="yes"?"Cumple los cuatro criterios.":v==="no"?"Cualifica brevemente y deriva a Partner.":"Puedes seguir y volver aquí."}</span></div>
     <div class="row"><button class="btn ghost" id="back">← Persona</button>${card&&card.core===undefined&&!card.loot?"":""}${v==="no"?`<button class="btn ghost" id="next">Seguir igualmente</button><button class="btn warn" id="derive">Derivar y cerrar →</button>`:`<button class="btn primary" id="next">Descubrir pains →</button>`}</div></div>`;
 }
@@ -899,7 +1021,7 @@ function qcallText(){
   const painsBlock=S.pains.length?S.pains.map(i=>{const x=PAINS[i],a=S.answers[i]||[];const lines=[`• ${i} · ${x.t} — "${x.say}"`];x.quant.forEach((qq,k)=>{if(a[k])lines.push(`   - ${qq[0]}: ${a[k]}`)});lines.push(`   - Why (in their words): ${V(S.why[i])}`);return lines.join("\n")}).join("\n"):"• —";
   const L=[`QCALL - ${date}`,
 `ICP-FIT: ${fitVerdict()==="no"?"NO → Partner referral":pp?"NO (pain "+S.pains.filter(i=>PAINS[i].partner).join(", ")+") → Partner referral":fitVerdict()==="yes"?"YES":"PENDING"} (${crit})`,
-`Who are we meeting with? (Recommended: CSO, COO, CEO, CRO, CMO)`,``,`* ${V(c.contact)} (${p.name})`,``,
+`Who are we meeting with? (Recommended: CSO, COO, CEO, CRO, CMO)`,``,`* ${V(c.contact)} (${p.name})`+(S.enrich&&S.enrich.data&&S.enrich.data.person&&S.enrich.data.person.linkedInUrl?`\n* LinkedIn: ${S.enrich.data.person.linkedInUrl}`:""),``,
 `Have they done / Are they doing outbound?`,``,`* ${YN(c.outbound)}${c.process?` · defined process: ${YN(c.process)}`:""}`,``,
 `Are they using any AI for prospecting (Claude, Chat GPT...)?`,``,`* ${YN(c.ai)}${c.aiTool?` · ${c.aiTool}`:""}`,``,
 `Key words/sentences (filled manual):`,``,`* ${keywords.length?keywords.join("\n* "):"—"}`,``,
@@ -936,6 +1058,7 @@ function renderSheet(){
   <div class="hud"><div class="lvl"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="32" cy="32" r="27" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pctAll/100)}" style="transition:stroke-dashoffset .5s"/></svg><b>${x}</b></div>
     <div class="t"><b>${r[1]}</b><small>Progreso ${x}%${nr?` · ${nr[0]-x} para “${nr[1]}”`:""}</small><div class="xpbar" style="margin-top:6px"><i style="width:${x}%"></i></div></div></div>
   <dl class="kv"><dt>Perfil</dt><dd>${p?esc(p.name):'<span class="empty">sin elegir</span>'}</dd>
+  <dt>Enginy</dt><dd>${!S.enrich||S.enrich.status==="idle"?'<span class="empty">sin URL de LinkedIn</span>':S.enrich.status==="done"?'<span class="pill ok">datos cargados</span>':S.enrich.status==="scraping"||S.enrich.status==="loading"?'<span class="pill w">extrayendo…</span>':S.enrich.status==="partial"?'<span class="pill w">datos parciales</span>':'<span class="pill w">sin datos</span>'}</dd>
   <dt>ICP-fit</dt><dd>${p?`<span class="pill ${fitVerdict()==="yes"?"ok":fitVerdict()==="no"?"w":""}">${esc(fitLabel())}</span>`:'<span class="empty">—</span>'}</dd>
   <dt>Pains</dt><dd>${S.pains.length?S.pains.map(i=>`<span class="pill ${PAINS[i].partner?"w":""}" title="${esc(PAINS[i].t)}">${i}</span>`).join(""):'<span class="empty">ninguno todavía</span>'}</dd>
   <dt>Ruta</dt><dd>${!S.pains.length&&!pp?'<span class="empty">—</span>':(pp?'<span class="pill w">Partner referral</span>':'<span class="pill ok">Demo con decisor</span>')}</dd>
@@ -947,9 +1070,11 @@ function renderSheet(){
   $("#quick").oninput=e=>{S.quick=e.target.value;save()};
   $("#ncopy").onclick=()=>{if(!p)return toast("Elige primero un perfil");copy(qcallText())};
 }
-function resetAll(){S={step:1,persona:null,pains:[],detail:null,view:S.view,checks:{},answers:{},why:{},qnotes:{},base:{},co:{},quick:"",ci:0,bi:0,boss:0,lock:null,skipped:{}};lastXp=0;render()}
+function resetAll(){S={step:1,persona:null,pains:[],detail:null,view:S.view,checks:{},answers:{},why:{},qnotes:{},base:{},co:{},quick:"",ci:0,bi:0,boss:0,lock:null,skipped:{},enrich:null,auto:{}};clearTimeout(pollT);lastXp=0;render()}
 $("#reset").onclick=resetAll;
 let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{const m=$("#map");if(m)placeSpheres(m,$$(".sphere:not(.core)"))},150)});
+if(S.enrich&&S.enrich.status==="loading")S.enrich={...S.enrich,status:"idle"};
+if(S.enrich&&S.enrich.status==="scraping")schedulePoll();
 lastXp=xp();render();
 </script>
 </body>

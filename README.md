@@ -2,7 +2,7 @@
 
 Guía interactiva y gamificada que los SDRs de Enginy siguen **en directo durante la llamada de cualificación (QCALL)**. Al terminar, genera la nota de la QCALL lista para pegar en el deal de HubSpot.
 
-Es una única página estática (`index.html`, con CSS y JS integrados): sin dependencias, sin build y sin backend.
+Es una página estática (`index.html`, con CSS y JS integrados) más una función serverless (`api/enrich.js`) para el autocompletado con Enginy. Sin dependencias ni build.
 
 ## Cómo funciona
 
@@ -28,9 +28,40 @@ Una empresa es target si cumple los cuatro:
 
 Si falla alguno, o si se detecta el pain P1 (empieza outbound desde cero) o P2 (sin equipo de ventas), la app cambia a la **ruta Partner**: no hay demo y el lead se deriva a un Partner con fecha de revisión.
 
+## Autocompletar desde LinkedIn (Enginy)
+
+En el paso 1 el SDR puede pegar la URL del LinkedIn de su interlocutor. La app pide los datos a Enginy y rellena sola la persona y la empresa: nombre y cargo, empleados, comerciales estimados (departamentos Sales + Business Development de LinkedIn), ubicación y sector. También sugiere el perfil de comprador según el cargo. Los datos rellenados llevan la marca ✨ para que el SDR los confirme con el prospect, y nunca pisan lo que el SDR ya haya escrito.
+
+Cómo funciona (`api/enrich.js`, función serverless de Vercel):
+
+1. Busca el contacto en Enginy por la URL de LinkedIn. Si existe con datos completos, los devuelve al instante, sin gastar créditos.
+2. Si no existe, lo crea y lanza `SCRAPE_LEAD_FROM_LINKEDIN` (perfil y empresa). Si la empresa sigue incompleta, lanza `SCRAPE_COMPANY_FROM_LINKEDIN`. El navegador consulta el estado cada 4 s; suele tardar entre 1 y 5 minutos, y el SDR puede seguir con la llamada mientras tanto.
+3. Si el contacto se actualizó en Enginy hace menos de 15 minutos, no se vuelve a scrapear, para no gastar créditos dos veces.
+
+Cada scraping consume créditos del workspace de Enginy.
+
+### Configuración en Vercel (obligatoria para el autocompletado)
+
+En el proyecto de Vercel → **Settings → Environment Variables**, añade:
+
+| Variable | Valor |
+| --- | --- |
+| `ENGINY_API_KEY` | API key de Enginy (`gsk_…`) con permisos de contactos, empresas y acciones |
+| `APP_ACCESS_CODE` | Un código que repartes a los SDRs. Lo introducen una vez y queda guardado en su navegador |
+
+Después haz **Redeploy**. Sin estas variables, la app funciona igual en modo manual y el autocompletado muestra un aviso.
+
+Seguridad: la API key solo vive en el servidor. Sin el código de acceso no se puede llamar a la función, y los tokens de seguimiento van firmados (HMAC), así que nadie puede usarlos para leer otros contactos del workspace.
+
+### Tests
+
+```bash
+npm test
+```
+
 ## Abrir en local
 
-Haz doble clic en `index.html`. No hace falta instalar nada.
+Haz doble clic en `index.html`. Funciona todo salvo el autocompletado, que necesita la función de Vercel.
 
 ## Desplegar en Vercel (recomendado, funciona con repo privado)
 
@@ -60,4 +91,4 @@ Todo el contenido está en el `<script>` de `index.html`:
 
 ## Datos y privacidad
 
-El progreso de cada llamada se guarda solo en el `localStorage` del navegador del SDR. No se envía a ningún servidor, no se sincroniza entre dispositivos y se borra con **Nueva llamada**.
+El progreso de cada llamada se guarda solo en el `localStorage` del navegador del SDR: no se sincroniza entre dispositivos y se borra con **Nueva llamada**. Lo único que sale del navegador es la URL de LinkedIn que pega el SDR, que se envía a Enginy (a través de `api/enrich.js`) para el autocompletado; el contacto queda guardado en el workspace de Enginy.
