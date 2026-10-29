@@ -370,8 +370,12 @@ textarea.sum{width:100%;min-height:340px;resize:vertical;border-radius:14px;bord
 .pcardx .facts i{font-style:normal;font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:7px;background:var(--accent-soft);color:var(--fg)}
 .pcardx .facts a{font-family:var(--mono);font-size:11px;color:var(--accent);text-decoration:none;padding:3px 2px}
 .pcardx .cta{display:flex;flex-direction:column;gap:6px;align-items:flex-end;text-align:right}
+.pcardx .cta.hint{max-width:300px;align-items:flex-start;text-align:left;background:var(--accent-soft);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.4}
+@media (max-width:640px){.pcardx .cta.hint{max-width:none}}
 .pcardx .cta small{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .sphere.persona.suggest{box-shadow:inset 0 -14px 26px rgba(0,0,0,.28),inset 0 2px 2px rgba(255,255,255,.25),0 0 0 4px var(--accent),0 0 40px rgba(54,228,113,.55)}
+.sphere.persona.suggest{animation:hintpulse 2.2s ease-in-out infinite}
+@keyframes hintpulse{50%{filter:brightness(1.18)}}
 .sphere .sug{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);padding:2px 7px;border-radius:6px;white-space:nowrap}
 .autotag{font-family:var(--mono);font-size:11.5px;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:6px 10px;align-self:flex-start}
 .etoast{position:fixed;z-index:70;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel-solid);border:1px solid var(--accent);color:var(--fg);border-radius:14px;padding:11px 16px;box-shadow:var(--shadow);font-size:13.5px;animation:deal .3s ease-out;max-width:calc(100vw - 32px)}
@@ -793,13 +797,13 @@ function profileHtml(){const e=S.enrich;if(!e||!e.data)return"";const P=e.data.p
   return `<div class="pcardx"><div class="av">${okUrl(P.imageUrl)?`<img src="${esc(okUrl(P.imageUrl))}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:""}${esc(ini)}</div>
     <div class="who"><b>${esc(P.fullName||"Sin nombre")}</b><span>${esc([P.jobTitle||P.headline,C.name].filter(Boolean).join(" · "))}</span>
     <div class="facts">${facts.map(f=>`<i>${esc(f)}</i>`).join("")}${okUrl(P.appUrl)?`<a href="${esc(okUrl(P.appUrl))}" target="_blank" rel="noopener">Ver en Enginy ↗</a>`:""}${okUrl(P.linkedInUrl)?`<a href="${esc(okUrl(P.linkedInUrl))}" target="_blank" rel="noopener">LinkedIn ↗</a>`:""}</div></div>
-    <div class="cta">${sp?`<small>Perfil sugerido</small><button class="btn primary" id="li-use">Continuar como ${esc(sp.name)} →</button>`:`<small>Elige el perfil en el mapa</small>`}</div></div>`}
+    <div class="cta hint">${sp?`<small>Pista</small><span>Por su cargo${P.jobTitle?` (“${esc(P.jobTitle)}”)`:""}, probablemente es <b>${esc(sp.name)}</b>. Confírmalo con lo que te cuente y elige su esfera en el mapa ↓</span>`:`<small>Pista</small><span>Por su cargo no podemos deducir el perfil. Pregúntale qué hace y elige su esfera en el mapa ↓</span>`}</div></div>`}
 function bindLookup(){const u=$("#li-url"),g=$("#li-go");if(!u||!g)return;
   g.onclick=()=>startEnrich(u.value);u.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();startEnrich(u.value)}};
   u.onpaste=()=>setTimeout(()=>{if(/linkedin\.com\/in\//i.test(u.value)&&!(S.enrich&&(S.enrich.status==="loading"||S.enrich.status==="scraping")))startEnrich(u.value)},0);
   const c=$("#li-code"),cg=$("#li-code-go");if(c&&cg){const go=()=>{if(!c.value.trim())return;setCode(c.value.trim());startEnrich((S.enrich&&S.enrich.url)||u.value)};cg.onclick=go;c.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go()}}}
   const r=$("#li-retry");if(r)r.onclick=()=>startEnrich(S.enrich.url||u.value);
-  const use=$("#li-use");if(use)use.onclick=()=>{const b=$(`.sphere.persona[data-id="${S.enrich.suggested}"]`);if(b)b.click()}}
+  }
 
 // ---- Level 1: Persona ----
 function stagePersona(){
@@ -815,7 +819,7 @@ function stagePersona(){
   ${lookupHtml()}
   <div class="map" id="map"><div class="ring"></div><div class="ring r2"></div><div class="tip" id="tip"></div>
     <div class="sphere core"><div><small>Enginy</small>AI Sales OS</div></div>
-    ${PERSONAS.map(p=>`<button class="sphere persona float ${S.enrich&&S.enrich.suggested===p.id?"suggest":""}" data-id="${p.id}">${S.enrich&&S.enrich.suggested===p.id?'<span class="sug">Sugerido</span>':""}<div><span class="t">${esc(p.name)}</span><em>${esc(p.sub)}</em></div></button>`).join("")}
+    ${PERSONAS.map(p=>`<button class="sphere persona float ${S.enrich&&S.enrich.suggested===p.id?"suggest":""}" data-id="${p.id}">${S.enrich&&S.enrich.suggested===p.id?'<span class="sug">Pista</span>':""}<div><span class="t">${esc(p.name)}</span><em>${esc(p.sub)}</em></div></button>`).join("")}
   </div>`;
 }
 
