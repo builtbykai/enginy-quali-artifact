@@ -497,6 +497,29 @@ button.shield:hover{border-color:var(--accent)}
 .pi em{color:var(--accent);font-style:normal}
 .pi.on,.pi:hover{background:var(--accent-soft)}
 .palfoot{font-size:11px;color:var(--muted);padding:8px 14px;border-top:1px solid var(--line);font-family:var(--mono)}
+
+/* subcategorías como bloques propios + navegación entre secciones */
+.grp{margin-top:18px;border:1px solid var(--line);border-radius:22px;padding:16px;background:var(--bg2);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.grp.full{border-color:var(--accent)}
+.gh{display:flex;gap:12px;align-items:center;margin:-2px 0 14px;padding-bottom:12px;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+.gico{flex:none;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:20px;background:var(--panel-solid);border:1px solid var(--line);box-shadow:inset 0 -5px 10px rgba(0,0,0,.2)}
+.grp.full .gico{background:var(--accent-soft);border-color:var(--accent)}
+.gtt{flex:1;min-width:180px}
+.gtt small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.gtt h3{margin:1px 0 2px;font-size:18px;letter-spacing:-.015em;line-height:1.2}
+.gtt p{margin:0;font-size:12.5px;color:var(--muted)}
+.gprog{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:72px}
+.gprog b{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--muted)}
+.gprog.full b{color:var(--accent)}
+.gprog>i{display:block;width:72px;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.gprog>i>i{display:block;height:100%;background:linear-gradient(90deg,#1FB85B,var(--accent));transition:width .4s}
+.grp .fc{background:var(--panel2)}
+.grp .fc.has{background:var(--accent-soft)}
+.grp .fc.open{background:var(--panel-solid)}
+.secnav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px;padding-top:16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.secnav .nx{display:flex;align-items:center;gap:12px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.secnav .nx small{color:var(--muted);font-size:12px}
+.secnav .btn.primary{padding:12px 20px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -790,13 +813,13 @@ const FIELDS=[
  {k:"icpSize",sec:"cuenta",g:"b",ask:"¿De qué tamaño son vuestros clientes?",lbl:"Tamaño de sus clientes",ph:"ej. 50-500 empleados, >5M€",kw:"tamaño clientes facturacion empleados target"},
  // Proceso y stack
  {k:"processOpen",sec:"proceso",g:"c",ask:"Cuéntame cómo generáis las listas hoy: quién lo hace, con qué y cuánto tarda.",lbl:"Proceso de generación de listas",ph:"en sus palabras",kw:"proceso listas lead generation quien tiempo research",wide:1},
- {k:"crm",sec:"proceso",g:"tools",ask:"¿Qué CRM usáis?",lbl:"C.1 CRM",ph:"ej. HubSpot",kw:"crm hubspot salesforce pipedrive"},
- {k:"listTools",sec:"proceso",g:"tools",ask:"¿Con qué construís listas y enriquecéis datos?",lbl:"C.3 Listas y enriquecimiento",ph:"ej. Apollo, Lusha",kw:"apollo lusha zoominfo clay cognism listas enriquecimiento datos herramientas"},
- {k:"seqTool",sec:"proceso",g:"tools",ask:"¿Qué herramienta de campañas o secuencias tenéis?",lbl:"C.4 Secuencias",ph:"ej. Lemlist",kw:"lemlist outreach salesloft secuencias campañas emails herramienta"},
- {k:"salesNav",sec:"proceso",g:"tools",ask:"¿Tenéis licencias de Sales Navigator? ¿Cuántas?",lbl:"C.5 Sales Navigator",ph:"ej. 4",kw:"sales navigator linkedin licencias"},
+ {k:"crm",sec:"proceso",g:"tools",ask:"¿Qué CRM usáis?",lbl:"CRM",ph:"ej. HubSpot",kw:"crm hubspot salesforce pipedrive"},
+ {k:"listTools",sec:"proceso",g:"tools",ask:"¿Con qué construís listas y enriquecéis datos?",lbl:"Listas y enriquecimiento",ph:"ej. Apollo, Lusha",kw:"apollo lusha zoominfo clay cognism listas enriquecimiento datos herramientas"},
+ {k:"seqTool",sec:"proceso",g:"tools",ask:"¿Qué herramienta de campañas o secuencias tenéis?",lbl:"Secuencias",ph:"ej. Lemlist",kw:"lemlist outreach salesloft secuencias campañas emails herramienta"},
+ {k:"salesNav",sec:"proceso",g:"tools",ask:"¿Tenéis licencias de Sales Navigator? ¿Cuántas?",lbl:"Sales Navigator",ph:"ej. 4",kw:"sales navigator linkedin licencias"},
  {k:"ai",sec:"proceso",g:"tools",ask:"¿Usáis alguna IA para prospectar? ChatGPT, Claude…",lbl:"Usan IA",type:"yn",kw:"ia ai chatgpt claude inteligencia artificial"},
- {k:"aiTool",sec:"proceso",g:"tools",ask:"¿Cuál y para qué la usáis?",lbl:"C.2 Herramienta de IA",ph:"ej. ChatGPT para redactar emails",kw:"ia chatgpt claude para que",dep:["ai","yes"]},
- {k:"extraInfo",sec:"proceso",g:"tools",ask:"¿Qué información que no está en LinkedIn os importa para encontrar buenos clientes?",lbl:"C.6 Datos fuera de LinkedIn",ph:"ej. tecnología que usan, nº de tiendas",kw:"datos informacion tecnologia señales fuera de linkedin"},
+ {k:"aiTool",sec:"proceso",g:"tools",ask:"¿Cuál y para qué la usáis?",lbl:"Herramienta de IA",ph:"ej. ChatGPT para redactar emails",kw:"ia chatgpt claude para que",dep:["ai","yes"]},
+ {k:"extraInfo",sec:"proceso",g:"tools",ask:"¿Qué información que no está en LinkedIn os importa para encontrar buenos clientes?",lbl:"Datos fuera de LinkedIn",ph:"ej. tecnología que usan, nº de tiendas",kw:"datos informacion tecnologia señales fuera de linkedin"},
  {k:"emailQuality",st:"base",sec:"proceso",g:"data",ask:"¿Qué tal la calidad de los emails que tenéis?",lbl:"Calidad de emails",ph:"ej. regular, muchos genéricos",kw:"emails calidad datos"},
  {k:"bounce",st:"base",sec:"proceso",g:"data",ask:"¿Qué bounce rate tenéis?",lbl:"Bounce rate",ph:"ej. 8%",kw:"bounce rebotes spam deliverability"},
  {k:"reply",st:"base",sec:"proceso",g:"data",ask:"¿Y el reply rate?",lbl:"Reply rate",ph:"ej. 2%",kw:"reply respuestas tasa"},
@@ -810,7 +833,9 @@ const FIELDS=[
  {k:"ticket",st:"base",sec:"proceso",g:"e",ask:"¿Cuál es el ticket medio por cliente?",lbl:"Ticket medio",ph:"ej. 12k€/año",kw:"ticket precio medio acv mrr facturacion cliente"},
  {k:"clients",st:"base",sec:"proceso",g:"e",ask:"¿Cuántos clientes tenéis hoy?",lbl:"Clientes actuales",ph:"ej. 80",kw:"clientes numero cartera"},
 ];
-const GROUPS={who:"Interlocutor",icp:"Criterios de ICP",a:"A · Situación de la empresa",b:"B · Su ICP (a quién venden)",c:"C · Proceso de listas",tools:"C · Herramientas",data:"C · Calidad de datos",d:"D · Día a día y canales",e:"E · Volumen y ratios"};
+const GROUPS={who:"Interlocutor",icp:"Criterios de ICP",a:"Situación de la empresa",b:"Su ICP: a quién venden",c:"Proceso de listas",tools:"Herramientas",data:"Calidad de datos",d:"Día a día y canales",e:"Volumen y ratios"};
+const GICO={who:"👤",icp:"🎯",a:"🏢",b:"🧭",c:"🗂️",tools:"🧰",data:"📊",d:"📅",e:"📈"};
+const GSUB={who:"Nombre y cargo de tu interlocutor",icp:"Los 4 criterios que deciden si es target, y su tamaño",a:"Dónde están, qué venden y cómo es su equipo",b:"Países, sectores, tamaño y cargo de sus clientes",c:"Quién hace las listas, con qué y cuánto tarda",tools:"CRM, datos, secuencias, Sales Navigator e IA",d:"En qué se le va el tiempo a un rep y qué canales usan",data:"Emails, bounce, reply y teléfonos",e:"Volumen de contactos, ciclo, ticket y clientes"};
 const SECGROUPS={cuenta:["who","icp","a","b"],proceso:["c","tools","data","d","e"]};
 const F=Object.fromEntries(FIELDS.map(f=>[f.k,f]));
 const store=f=>f.st==="base"?S.base:S.co;
@@ -908,7 +933,12 @@ function renderTabs(){
     return `<button class="tab ${on?"on":""} ${p>=100?"done":""}" data-sec="${s.id}" title="${esc(s.sub)}"><span class="tn">${p>=100?"✓":i+1}</span><span class="tt"><b>${esc(s.t)}</b><small>${esc(sub)}</small></span>${p!=null?`<i class="tb"><i style="width:${p}%"></i></i>`:""}</button>`}).join("");
   $$(".tab").forEach(b=>b.onclick=()=>go(b.dataset.sec));
 }
-function renderStage(){const st=$("#stage");st.innerHTML={cuenta:secCuenta,proceso:secProceso,pains:secPains,decision:secDecision,cierre:secCierre}[S.sec]();bindFields()}
+function navFoot(){const i=SECS.findIndex(s=>s.id===S.sec),prev=SECS[i-1],next=SECS[i+1];if(!prev&&!next)return"";
+  const pct=secPct(S.sec);
+  return `<nav class="secnav">${prev?`<button class="btn ghost" data-go="${prev.id}">← ${esc(prev.t)}</button>`:"<span></span>"}
+    ${next?`<div class="nx">${pct!=null&&pct<100?`<small>Quedan preguntas en esta sección; puedes volver cuando quieras</small>`:pct>=100?`<small>Sección completa</small>`:""}<button class="btn primary" data-go="${next.id}">Siguiente: ${esc(next.t)} →</button></div>`:""}</nav>`}
+function renderStage(){const st=$("#stage");st.innerHTML={cuenta:secCuenta,proceso:secProceso,pains:secPains,decision:secDecision,cierre:secCierre}[S.sec]()+navFoot();bindFields();
+  $$(".secnav [data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go))}
 
 // ---------- field cards (any question, any order) ----------
 function fieldCard(f){const v=val(f.k),open=S.open===f.k,auto=S.auto&&S.auto[f.k];
@@ -921,9 +951,11 @@ function fieldCard(f){const v=val(f.k),open=S.open===f.k,auto=S.auto&&S.auto[f.k
   return `<div class="fc ${v?"has":""} ${open?"open":""} ${f.wide?"wide":""} ${f.core?"core":""}" data-k="${f.k}" id="fc-${f.k}" ${t==="text"&&!open?'tabindex="0" role="button"':""}>
     <div class="fl"><span>${esc(f.lbl)}</span>${f.core?'<i class="ftag">ICP</i>':""}${auto?'<i class="ftag auto" title="Dato de Enginy: confírmalo">✨ Enginy</i>':""}</div>
     <div class="fq">“${esc(f.ask)}”</div>${f.help?`<div class="fhelp">${esc(f.help)}</div>`:""}${body}</div>`}
+function grpHead(g,sec,n,t,extra){const i=SECGROUPS[sec].indexOf(g)+1,tot=SECGROUPS[sec].length;
+  return `<header class="gh"><span class="gico">${GICO[g]}</span><div class="gtt"><small>Bloque ${i} de ${tot}</small><h3>${esc(GROUPS[g])}</h3><p>${esc(GSUB[g])}</p></div><div class="gprog ${n===t?"full":""}"><b>${n===t?"✓ ":""}${n}/${t}</b><i><i style="width:${t?100*n/t:0}%"></i></i></div>${extra||""}</header>`}
 function groupHtml(g,sec){const fs=visibleF(sec).filter(f=>f.g===g);if(!fs.length)return"";const n=fs.filter(f=>val(f.k)).length;
-  return `<section class="grp" id="g-${g}"><h3>${esc(GROUPS[g])} <small>${n}/${fs.length}</small></h3><div class="fgrid">${fs.map(fieldCard).join("")}</div></section>`}
-function jumpChips(sec){return `<div class="jumps">${SECGROUPS[sec].map(g=>{const fs=visibleF(sec).filter(f=>f.g===g);const n=fs.filter(f=>val(f.k)).length;return `<button class="jump" data-g="${g}">${esc(GROUPS[g].replace(/^[A-E] · /,""))} <small>${n}/${fs.length}</small></button>`}).join("")}</div>`}
+  return `<section class="grp ${n===fs.length?"full":""}" id="g-${g}">${grpHead(g,sec,n,fs.length)}<div class="fgrid">${fs.map(fieldCard).join("")}</div></section>`}
+function jumpChips(sec){return `<div class="jumps">${SECGROUPS[sec].map(g=>{const fs=visibleF(sec).filter(f=>f.g===g);const n=fs.filter(f=>val(f.k)).length;return `<button class="jump" data-g="${g}">${esc(GROUPS[g])} <small>${n}/${fs.length}</small></button>`}).join("")}</div>`}
 function setVal(k,v,el){const f=F[k];const s=store(f);if(v==null||v===""){delete s[k]}else s[k]=v;if(S.auto)delete S.auto[k];popXp(el)}
 function nextOpen(k){const f=F[k];const fs=visibleF(f.sec).filter(x=>(x.type||"text")==="text");const i=fs.findIndex(x=>x.k===k);
   for(let j=i+1;j<fs.length;j++)if(!val(fs[j].k))return fs[j].k;return null}
@@ -965,7 +997,7 @@ function secCuenta(){
   </div>`:personaBar()}
   ${jumpChips("cuenta")}
   ${groupHtml("who","cuenta")}
-  <section class="grp" id="g-icp"><h3>${GROUPS.icp} <small>${esc(fitLabel())}</small></h3>
+  <section class="grp ${v==="yes"?"full":""}" id="g-icp">${grpHead("icp","cuenta",visibleF("cuenta").filter(f=>f.g==="icp"&&val(f.k)).length,visibleF("cuenta").filter(f=>f.g==="icp").length)}
     ${shields}
     <div class="segrow"><span class="segchip ${seg||"none"}">${seg?`Tamaño: <b>${SEGS[seg].name}</b> · ${SEGS[seg].range}`:"Tamaño: pendiente (responde comerciales o empleados)"}</span>
       <label class="segsel">Ajustar <select id="segsel"><option value="">Automático</option>${Object.entries(SEGS).map(([k,s])=>`<option value="${k}" ${S.segOverride===k?"selected":""}>${s.name}</option>`).join("")}</select></label></div>
@@ -977,7 +1009,7 @@ function secCuenta(){
 // ---------- Proceso y stack ----------
 function secProceso(){
   return `<div class="eyebrow">2 · Proceso y stack</div><h1>Cómo prospectan hoy</h1>
-  <p class="sub">Proceso, herramientas, calidad de datos, día a día y volumen: secciones C, D y E de la nota. Si el prospect salta de tema, salta tú también con los accesos de abajo.</p>
+  <p class="sub">Proceso de listas, herramientas, calidad de datos, día a día y volumen. Si el prospect salta de tema, salta tú también con los accesos de abajo.</p>
   ${jumpChips("proceso")}${SECGROUPS.proceso.map(g=>groupHtml(g,"proceso")).join("")}`;
 }
 
@@ -1067,12 +1099,12 @@ function secDecision(){
   const extras={};S.pains.forEach(id=>{if(EXTRA[id])Object.entries(EXTRA[id]).forEach(([n,q])=>{(extras[n]=extras[n]||[]).push(["x"+id+n,q,"+"])})});
   const sq=seg?SEGQ[seg]:{};const buy=seg?SEGBUY[seg]:null;
   return `<div class="eyebrow">4 · Decisión${seg?` <span class="tag">${SEGS[seg].name}</span>`:""}</div><h1>¿Puede comprar?</h1>
-  <p class="sub">Los seis bloques de la nota (G a L), todos a la vista: apunta en el que toque según lo que vaya saliendo. ${p?`Con ${esc(p.name)}, el decisor esperado es <b>${esc(p.dm)}</b>.`:""}${p&&p.champion?" Con este perfil el objetivo es la intro a su manager, no la demo.":""}</p>
+  <p class="sub">Los seis bloques de la decisión, todos a la vista: apunta en el que toque según lo que vaya saliendo. ${p?`Con ${esc(p.name)}, el decisor esperado es <b>${esc(p.dm)}</b>.`:""}${p&&p.champion?" Con este perfil el objetivo es la intro a su manager, no la demo.":""}</p>
   ${buy?`<div class="buy"><div><small>Quién firma</small><b>${esc(buy.who)}</b></div><div><small>Quién influye</small><b>${esc(buy.infl)}</b></div><div><small>Duración típica</small><b>${esc(buy.dur)}</b></div><div><small>Qué bloquea</small><b>${esc(buy.block)}</b></div><div><small>Siguiente paso ideal</small><b>${esc(buy.next)}</b></div></div>`:`<p class="fhelp">Define el tamaño en Cuenta para ver cómo compra este tipo de empresa.</p>`}
   <div class="jumps">${QUAL.map(c=>`<button class="jump" data-b="${c.k}">${c.ico} ${esc(c.t)} ${blockDone(c)?"✓":""}</button>`).join("")}</div>
   <div class="dgrid">${QUAL.map(c=>{const ex=(extras[c.n]||[]).concat((sq[c.k]||[]).map((q,i)=>["s"+seg+c.k+i,q,"T"]));
     const qs=c.q.map((q,k)=>[c.n+k,q,""]).concat(ex);
-    return `<div class="dblk ${blockDone(c)?"done":""}" id="blk-${c.k}"><h3>${c.ico} ${esc(c.t)} <small>${c.snip}</small></h3><p class="goal">${esc(c.goal)}</p>
+    return `<div class="dblk ${blockDone(c)?"done":""}" id="blk-${c.k}"><h3>${c.ico} ${esc(c.t)}</h3><p class="goal">${esc(c.goal)}</p>
       <div class="qchips">${qs.map(q=>`<button class="qchip ${S.checks[q[0]]?"on":""} ${q[2]?"extra":""}" data-k="${q[0]}"><span class="box">${S.checks[q[0]]?"✓":""}</span><span>${q[2]==="+"?'<span class="plus">+ pain</span> ':q[2]==="T"?`<span class="plus">${SEGS[seg].name}</span> `:""}${esc(q[1])}</span></button>`).join("")}</div>
       ${(c.toggles||[]).map(t=>`<div class="row tgrow"><span>${esc(t[1])}</span><div class="seg"><button class="tg ${S.qnotes[t[0]]==="yes"?"on":""}" data-t="${t[0]}" data-v="yes">Sí</button><button class="tg ${S.qnotes[t[0]]==="no"?"on":""}" data-t="${t[0]}" data-v="no">No</button></div></div>`).join("")}
       <textarea class="qn" id="qn-${c.k}" data-n="${c.k}" rows="2" placeholder="${esc(c.note)}…">${esc(S.qnotes[c.k]||"")}</textarea>
@@ -1117,7 +1149,7 @@ function topics(){const p=persona(),t=[];
   FIELDS.forEach(f=>{if(f.dep&&S.co[f.dep[0]]!==f.dep[1])return;t.push({l:f.lbl,d:`${SECS.find(s=>s.id===f.sec).t} · ${GROUPS[f.g]}`,kw:f.ask+" "+f.kw,v:val(f.k),act:()=>go(f.sec,(f.type||"text")==="text"?f.k:null)||setTimeout(()=>focusField(f.k),80)})});
   t.push({l:"Con quién hablas (perfil)",d:"Cuenta · Persona",kw:"persona perfil quien rol cargo",act:()=>{S.pickPersona=true;go("cuenta")}});
   if(p)p.pains.forEach(id=>{const x=PAINS[id];if(!x)return;t.push({l:`${id} · ${x.t}`,d:`Pains${S.pains.includes(id)?" · detectado":""}`,kw:x.say+" "+x.hint+" "+x.d.join(" ")+" pain dolor",act:()=>{S.sec="pains";openDetail(id)}})});
-  QUAL.forEach(c=>t.push({l:c.t,d:`Decisión · ${c.snip}`,kw:c.goal+" "+c.q.join(" ")+" "+({impact:"roi impacto",competitors:"competencia alternativas apollo",timing:"cuando fecha plazo implementacion",criteria:"criterios evaluacion requisitos seguridad",process:"decisor firma comite compras legal proceso de compra",price:"precio presupuesto coste pago budget renovacion"})[c.k],act:()=>{go("decision");setTimeout(()=>{const el=$("#blk-"+c.k);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});const ta=$("#qn-"+c.k);if(ta)ta.focus()}},80)}}));
+  QUAL.forEach(c=>t.push({l:c.t,d:"Decisión",kw:c.goal+" "+c.q.join(" ")+" "+({impact:"roi impacto",competitors:"competencia alternativas apollo",timing:"cuando fecha plazo implementacion",criteria:"criterios evaluacion requisitos seguridad",process:"decisor firma comite compras legal proceso de compra",price:"precio presupuesto coste pago budget renovacion"})[c.k],act:()=>{go("decision");setTimeout(()=>{const el=$("#blk-"+c.k);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});const ta=$("#qn-"+c.k);if(ta)ta.focus()}},80)}}));
   t.push({l:"Nota QCALL y script de cierre",d:"Cierre",kw:"nota hubspot copiar cierre demo script",act:()=>go("cierre")});
   t.push({l:"Notas rápidas",d:"Panel lateral",kw:"notas objeciones apuntes",act:()=>{const q=$("#quick");if(q){q.scrollIntoView({behavior:"smooth",block:"center"});q.focus()}}});
   return t}
