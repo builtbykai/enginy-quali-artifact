@@ -35,7 +35,7 @@ const COMPANY = { id: 77, name: "Acme", industry: "Software Development", number
   smartFieldExplanations: { "ICP Reachable on LinkedIn": "CUSTOMER: retailers…" } };
 const PERSON = { id: 11, firstName: "Marta", lastName: "Ruiz", jobTitle: "VP Sales", contactCountry: "Spain", linkedInProfileUrl: "https://www.linkedin.com/in/marta-ruiz-123/", companyId: 77 };
 
-test.beforeEach(() => { process.env.ENGINY_API_KEY = "gsk_test"; process.env.APP_ACCESS_CODE = "secret"; delete process.env.ENGINY_API_BASE; });
+test.beforeEach(() => { for (const k of Object.keys(handler._internal.routeCache)) delete handler._internal.routeCache[k]; process.env.ENGINY_API_KEY = "gsk_test"; process.env.APP_ACCESS_CODE = "secret"; delete process.env.ENGINY_API_BASE; });
 
 test("normalizes LinkedIn URLs", () => {
   assert.equal(normalizeLinkedIn("linkedin.com/in/Marta-Ruiz-123/?utm=x").slug, "marta-ruiz-123");
@@ -175,4 +175,20 @@ test("malformed URLs and non-https links are handled safely", async () => {
   assert.notEqual((await call("POST", { body: { linkedinUrl: "https://www.linkedin.com/in/%E0%A4%A" } })).code, 500);
   const p = buildProfile({ appUrl: "javascript:alert(1)", linkedInProfileUrl: "https://www.linkedin.com/in/x" }, { appUrl: "javascript:x" });
   assert.equal(p.person.appUrl, null); assert.equal(p.company.appUrl, null); assert.equal(p.person.linkedInUrl, "https://www.linkedin.com/in/x");
+});
+
+test("falls back between singular and plural single-record routes and reports the failing route", async () => {
+  const st = { contacts: [{ ...PERSON }], companies: [{ ...COMPANY }], actions: [] };
+  const calls = fakeEnginy(st);
+  // fake only knows plural routes; singular ones 404 first, then plural is used and remembered
+  const r = await call("POST", { body: { linkedinUrl: PERSON.linkedInProfileUrl } });
+  assert.equal(r.json.status, "found");
+  const before = calls.length;
+  await call("POST", { body: { linkedinUrl: PERSON.linkedInProfileUrl } });
+  assert.equal(calls.length - before, 3, "second time goes straight to the working routes");
+  // when nothing matches, the message names the route
+  global.fetch = async () => ({ ok: false, status: 404, json: async () => { throw new Error("no body"); } });
+  const e = await call("POST", { body: { linkedinUrl: PERSON.linkedInProfileUrl } });
+  assert.match(e.json.message, /GET \/v1\/contact/);
+  assert.doesNotMatch(e.json.message, /linkedin\.com/);
 });

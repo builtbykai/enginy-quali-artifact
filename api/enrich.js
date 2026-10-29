@@ -50,8 +50,10 @@ async function enginy(path, { method = "GET", body } = {}) {
   let json = null;
   try { json = await res.json(); } catch { /* empty body */ }
   if (!res.ok) {
-    const err = new Error((json && (json.message || json.error)) || `Enginy ${res.status}`);
+    const route = method + " " + path.split("?")[0].replace(/\/\d+(?=\/|$)/g, "/{id}");
+    const err = new Error(((json && (json.message || json.error)) || `Enginy ${res.status}`) + ` (${route})`);
     err.status = res.status;
+    err.route = route;
     throw err;
   }
   return json;
@@ -77,14 +79,26 @@ function decodeJob(s) {
 }
 
 // ---------- Enginy reads ----------
+// Some single-record routes are singular in Enginy's API (e.g. POST /v1/contact). Try both spellings on a
+// 404 and remember the one that answered, so later calls go straight to it.
+const routeCache = {};
+async function enginyAny(key, paths, opts) {
+  const order = routeCache[key] != null ? [routeCache[key], ...paths.keys()].filter((v, i, a) => a.indexOf(v) === i) : [...paths.keys()];
+  let last;
+  for (const i of order) {
+    try { const r = await enginy(paths[i], opts); routeCache[key] = i; return r; }
+    catch (e) { last = e; if (e.status !== 404 && e.status !== 405) throw e; }
+  }
+  throw last;
+}
 async function findContact(norm) {
   const q = new URLSearchParams({ search: norm.url, pageSize: "10" });
-  const j = await enginy(`/v1/contacts?${q}`);
+  const j = await enginyAny("list", [`/v1/contacts?${q}`, `/v1/contact?${q}`]);
   const list = Array.isArray(j && j.data) ? j.data : [];
   return list.find((c) => sameProfile(c.linkedInProfileUrl, norm.url)) || null;
 }
-async function getContact(id) { return unwrap(await enginy(`/v1/contacts/${id}`)); }
-async function getCompany(id) { return unwrap(await enginy(`/v1/companies/${id}`)); }
+async function getContact(id) { return unwrap(await enginyAny("contact", [`/v1/contact/${id}`, `/v1/contacts/${id}`])); }
+async function getCompany(id) { return unwrap(await enginyAny("company", [`/v1/company/${id}`, `/v1/companies/${id}`])); }
 async function startAction(target, type) {
   const body = { actions: [{ type }], ...target };
   const d = unwrap(await enginy(`/v1/actions`, { method: "POST", body }));
@@ -222,4 +236,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._internal = { normalizeLinkedIn, sameProfile, buildProfile, salesHeadcount, encodeJob, decodeJob };
+module.exports._internal = { routeCache, normalizeLinkedIn, sameProfile, buildProfile, salesHeadcount, encodeJob, decodeJob };
