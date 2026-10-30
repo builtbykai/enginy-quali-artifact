@@ -56,7 +56,7 @@ En el proyecto de Vercel → **Settings → Environment Variables**, añade:
 | Variable | Valor |
 | --- | --- |
 | `ENGINY_API_KEY` | API key de Enginy (`gsk_…`) con permisos de contactos, empresas y acciones |
-| `APP_ACCESS_CODE` | Un código que repartes a los SDRs. Lo introducen una vez y queda guardado en su navegador |
+| `APP_ACCESS_CODE` | Un código que repartes a los SDRs. La app lo pide en una pantalla de acceso al entrar, lo comprueba en el servidor (`api/auth.js`) y queda guardado en su navegador. Si lo cambias, se les vuelve a pedir |
 
 Después haz **Redeploy**. Sin estas variables, la app funciona igual en modo manual y el autocompletado muestra un aviso.
 

@@ -520,17 +520,43 @@ button.shield:hover{border-color:var(--accent)}
 .secnav .nx{display:flex;align-items:center;gap:12px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
 .secnav .nx small{color:var(--muted);font-size:12px}
 .secnav .btn.primary{padding:12px 20px}
+
+/* pantalla de acceso */
+.gate{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.gatebox{width:min(420px,100%);background:var(--panel);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:28px;padding:34px 30px 26px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;text-align:center;animation:deal .45s cubic-bezier(.2,.8,.2,1)}
+.gatelogo{align-self:center;width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.3),rgba(255,255,255,0) 40%),linear-gradient(150deg,#1C6E5B,#0A3A30);box-shadow:inset 0 -10px 18px rgba(0,0,0,.35),0 0 0 8px var(--accent-soft),0 0 40px rgba(54,228,113,.3)}
+.gatelogo i{font-style:normal;font-family:var(--mono);font-weight:600;font-size:26px;color:var(--accent)}
+.gatebox h1{margin:4px 0 0;font-size:26px;letter-spacing:-.02em}
+.gatebox p{margin:0;color:var(--muted);font-size:14px;line-height:1.45}
+.gatebox input{width:100%;border:1px solid var(--line);background:var(--glass);border-radius:14px;padding:14px 16px;font:16px var(--sans);text-align:center;letter-spacing:.08em}
+.gatebox .btn{padding:13px 18px;font-size:15px}
+.gatemsg{min-height:18px;font-size:13px;color:var(--muted)}
+.gatemsg.err{color:var(--danger)}
+.gatebox small{color:var(--muted);font-size:12px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 
 <canvas id="fx"></canvas>
-<div class="wrap">
+<div class="gate" id="gate" hidden>
+  <form class="gatebox" id="gate-form" autocomplete="off">
+    <div class="gatelogo"><i>E</i></div>
+    <h1>Qualification Map</h1>
+    <p>Guía de cualificación para el equipo de ventas de Enginy. Introduce el código de acceso del equipo; te lo da tu manager.</p>
+    <label for="gate-in" class="sr">Código de acceso</label>
+    <input id="gate-in" type="password" placeholder="Código de acceso" autocomplete="current-password" required>
+    <button class="btn primary" id="gate-go" type="submit">Entrar</button>
+    <div class="gatemsg" id="gate-msg" role="alert"></div>
+    <small>Se guarda en este navegador; solo lo tendrás que poner una vez.</small>
+  </form>
+</div>
+<div class="wrap" hidden>
   <div class="rail">
     <div class="logo"><i>E</i>Qualification Map</div>
     <nav class="tabs" id="tabs" aria-label="Secciones"></nav>
-    <div class="railbtns"><button class="findbtn" id="find" title="Busca un tema y salta a su pregunta">🔎 ¿De qué está hablando? <kbd>/</kbd></button><button class="reset" id="reset">Nueva llamada</button></div>
+    <div class="railbtns"><button class="findbtn" id="find" title="Busca un tema y salta a su pregunta">🔎 ¿De qué está hablando? <kbd>/</kbd></button><button class="reset" id="logout" title="Cerrar sesión en este navegador">Salir</button><button class="reset" id="reset">Nueva llamada</button></div>
   </div>
   <div class="main">
     <section class="stage" id="stage"></section>
@@ -1215,7 +1241,7 @@ async function startEnrich(url){
   if(S.enrich!==mine)return; // reset or a newer lookup happened meanwhile
   handleEnrich(j)}
 function handleEnrich(j){const e=S.enrich||{};
-  if(j._code===401){const had=!!getCode();setCode("");S.enrich={...e,status:"needcode",msg:had?j.message:""};return refreshEnrich()}
+  if(j._code===401){setCode("");S.enrich={...e,status:"idle"};save();return showGate("El código de acceso ha cambiado. Vuelve a introducirlo.")}
   if(j.status==="found"||j.status==="partial"){S.enrich={...e,status:j.status==="found"?"done":"partial",data:j.data,source:j.source,msg:j.message,job:null};
     const n=applyEnrich(j.data);refreshEnrich(true);etoast(n?`✨ Enginy ha rellenado ${n} dato${n===1?"":"s"} de persona y empresa`:"Enginy no ha encontrado datos nuevos");
     const r=$("#li-go")||$(".lookup");if(r){const b=r.getBoundingClientRect();burst(b.left+b.width/2,b.top+b.height/2,40)}return}
@@ -1325,7 +1351,22 @@ let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{const 
 if(S.enrich&&S.enrich.status==="loading")S.enrich={...S.enrich,status:"idle"};
 if(S.enrich&&S.enrich.status==="scraping")schedulePoll();
 Object.keys(W).forEach(id=>{if(secPct(id)>=100)S.done[id]=1});
-lastXp=xp();render({noScroll:true});
+lastXp=xp();
+// ---------- acceso ----------
+async function checkCode(code){try{const r=await fetch("/api/auth",{method:"POST",headers:{"x-access-code":code}});let j=null;try{j=await r.json()}catch(e){}
+  if(r.ok&&j&&j.ok)return"ok";if(r.status===401)return"bad";if(j&&j.code==="not_configured")return"noconfig";if(!j||[404,405,501].includes(r.status))return"offline";return"error"}catch(e){return"offline"}}
+function showGate(msg){$("#gate").hidden=false;$(".wrap").hidden=true;const m=$("#gate-msg");m.textContent=msg||"";m.classList.toggle("err",!!msg);setTimeout(()=>{const i=$("#gate-in");if(i)i.focus()},30)}
+let appShown=false;
+function openApp(){$("#gate").hidden=true;$(".wrap").hidden=false;if(!appShown){appShown=true;render({noScroll:true})}else render({noScroll:true})}
+$("#gate-form").onsubmit=async e=>{e.preventDefault();const i=$("#gate-in"),b=$("#gate-go"),v=i.value.trim();if(!v)return;
+  b.disabled=true;b.textContent="Comprobando…";const r=await checkCode(v);b.disabled=false;b.textContent="Entrar";
+  if(r==="ok"||r==="offline"){setCode(v);i.value="";openApp();if(r==="offline")etoast("Sin conexión con el servidor: el autocompletado con Enginy no funcionará")}
+  else if(r==="bad"){i.value="";showGate("Código incorrecto. Pídeselo a tu manager.")}
+  else if(r==="noconfig")showGate("La app aún no está configurada: falta APP_ACCESS_CODE en Vercel.");
+  else showGate("No se ha podido comprobar el código. Reintenta en un momento.")};
+$("#logout").onclick=()=>{setCode("");showGate()};
+if(getCode()){openApp();checkCode(getCode()).then(r=>{if(r==="bad"){setCode("");showGate("El código de acceso ha cambiado. Vuelve a introducirlo.")}})}
+else showGate();
 </script>
 </body>
 </html>

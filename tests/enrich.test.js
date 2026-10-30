@@ -192,3 +192,17 @@ test("falls back between singular and plural single-record routes and reports th
   assert.match(e.json.message, /GET \/v1\/contact/);
   assert.doesNotMatch(e.json.message, /linkedin\.com/);
 });
+
+test("auth endpoint checks the access code", async () => {
+  const auth = require("../api/auth.js");
+  const run = (method, code) => new Promise((resolve) => {
+    const res = { statusCode: 200, setHeader() {}, end(s) { resolve({ code: this.statusCode, json: JSON.parse(s) }); } };
+    auth({ method, headers: code ? { "x-access-code": code } : {} }, res);
+  });
+  assert.equal((await run("POST", "secret")).code, 200);
+  assert.equal((await run("POST", "nope")).code, 401);
+  assert.equal((await run("POST", null)).code, 401);
+  assert.equal((await run("GET", "secret")).code, 405);
+  delete process.env.APP_ACCESS_CODE;
+  assert.equal((await run("POST", "secret")).json.code, "not_configured");
+});
